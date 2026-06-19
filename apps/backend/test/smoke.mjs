@@ -148,6 +148,38 @@ async function main() {
     `GST collected aggregated (${stats.gstCollected})`,
   );
 
+  console.log('12. Credit model: apply → owner sets terms → ledger');
+  const me = await api('/auth/me', { token: ctoken });
+  await api('/credit/apply', { method: 'POST', token: ctoken });
+  await api(`/credit/${me.id}/terms`, {
+    method: 'PUT',
+    token: owner.accessToken,
+    body: { limit: 50000, tenureDays: 30 },
+  });
+  await api(`/credit/${me.id}/ledger`, {
+    method: 'POST',
+    token: owner.accessToken,
+    body: { amount: 10000, reason: 'EMI purchase' },
+  });
+  const credit = await api('/credit/me', { token: ctoken });
+  check(credit.status === 'ACTIVE', 'credit account activated by owner');
+  check(Number(credit.balance) === 10000, `ledger balance tracked (${credit.balance})`);
+
+  console.log('13. Exchange portal: submit → owner approves');
+  const ex = await api('/exchange', {
+    method: 'POST',
+    token: ctoken,
+    body: { brand: 'Apple', model: 'iPhone 12', condition: 'good' },
+  });
+  check(['SUBMITTED', 'AI_VALUED'].includes(ex.status), 'exchange submitted');
+  const reviewed = await api(`/exchange/${ex.id}`, {
+    method: 'PATCH',
+    token: owner.accessToken,
+    body: { decision: 'approve', approvedValue: 22000 },
+  });
+  check(reviewed.status === 'APPROVED', 'owner approved exchange');
+  check(Number(reviewed.approvedValue) === 22000, 'approved value set');
+
   console.log(`\nALL ${passed} CHECKS PASSED ✅`);
 }
 
