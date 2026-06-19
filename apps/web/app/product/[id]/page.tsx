@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { api, getToken } from '../../../lib/api';
 
 interface Product {
@@ -38,6 +39,7 @@ export default function ProductPage({
   const [reviews, setReviews] = useState<Review[]>([]);
   const [summary, setSummary] = useState<ReviewSummary | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     api.get<Product>(`/products/${id}`).then(setProduct).catch(() => {});
@@ -49,6 +51,18 @@ export default function ProductPage({
     try {
       await api.post('/cart/items', { productId: id, quantity: 1 });
       setNote('Added to cart ✓');
+    } catch (e) {
+      setNote((e as Error).message);
+    }
+  }
+
+  async function bargain() {
+    if (!getToken()) return setNote('Please log in first.');
+    try {
+      const t = await api.post<{ id: string }>('/chat/threads', {
+        productId: id,
+      });
+      router.push(`/chat?thread=${t.id}`);
     } catch (e) {
       setNote((e as Error).message);
     }
@@ -94,9 +108,12 @@ export default function ProductPage({
         </table>
       </div>
 
-      <button style={{ marginTop: 16 }} onClick={addToCart}>
-        Add to cart
-      </button>
+      <div className="row" style={{ marginTop: 16 }}>
+        <button onClick={addToCart}>Add to cart</button>
+        <button className="secondary" onClick={bargain}>
+          💬 Bargain
+        </button>
+      </div>
       {note && (
         <p className="muted" style={{ marginTop: 8 }}>
           {note}
