@@ -15,6 +15,8 @@ import { CouponsModule } from './coupons/coupons.module';
 import { CreditModule } from './credit/credit.module';
 import { ExchangeModule } from './exchange/exchange.module';
 import { DirectoryModule } from './directory/directory.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { DirectoryModule } from './directory/directory.module';
     CreditModule,
     ExchangeModule,
     DirectoryModule,
+    NotificationsModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}

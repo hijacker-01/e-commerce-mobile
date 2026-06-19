@@ -130,6 +130,24 @@ async function main() {
   }
   check(forbidden, 'customer blocked from approving (RBAC works)');
 
+  console.log('10. Notification raised on order approval');
+  const notifs = await api('/notifications', { token: ctoken });
+  check(
+    notifs.some((n) => n.type === 'order' && /APPROVED/.test(n.title)),
+    'customer got order-approved notification',
+  );
+  const unread = await api('/notifications/unread-count', { token: ctoken });
+  check(unread.count >= 1, `unread count tracked (${unread.count})`);
+
+  console.log('11. Owner analytics summary');
+  const stats = await api('/analytics/summary', { token: owner.accessToken });
+  check(Number(stats.inventoryValue) > 0, `inventory valued (${stats.inventoryValue})`);
+  check(stats.topProducts.length >= 1, 'top products computed');
+  check(
+    Number(stats.gstCollected) > 0,
+    `GST collected aggregated (${stats.gstCollected})`,
+  );
+
   console.log(`\nALL ${passed} CHECKS PASSED ✅`);
 }
 

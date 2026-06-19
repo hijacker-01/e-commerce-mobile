@@ -106,6 +106,10 @@ npm run mobile                # Expo  -> scan QR / press a (Android) / i (iOS)
 | POST/DELETE | `/api/service-centers` | OWNER / EMPLOYEE |
 | GET | `/api/lobby` | public (curated picks) |
 | POST/DELETE | `/api/lobby` | OWNER (curate) |
+| GET | `/api/notifications` | authed (own, latest 50) |
+| GET | `/api/notifications/unread-count` | authed |
+| POST | `/api/notifications/:id/read` / `/read-all` | authed |
+| GET | `/api/analytics/summary` | OWNER / EMPLOYEE (sales/inventory/GST) |
 | GET | `/api/cart` | CUSTOMER |
 | POST | `/api/cart/items` | CUSTOMER (add to cart) |
 | PATCH | `/api/cart/items/:productId` | CUSTOMER (qty; 0 removes) |

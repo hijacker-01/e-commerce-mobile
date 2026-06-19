@@ -8,10 +8,14 @@ import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/order.dto';
 import { AuthUser } from '../auth/decorators/current-user.decorator';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /** Customer places an order; starts as REQUESTED, awaiting approval. */
   async create(customerId: string, dto: CreateOrderDto) {
@@ -86,7 +90,7 @@ export class OrdersService {
       status === OrderStatus.APPROVED &&
       order.status === OrderStatus.REQUESTED;
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       if (isFirstApproval) {
         for (const item of order.items) {
           const inv = await tx.inventory.findUnique({
@@ -113,5 +117,15 @@ export class OrdersService {
         },
       });
     });
+
+    // Notify the customer of the status change (best-effort, post-commit).
+    await this.notifications.create(
+      order.customerId,
+      'order',
+      `Order ${order.number} is now ${status}`,
+      undefined,
+    );
+
+    return updated;
   }
 }

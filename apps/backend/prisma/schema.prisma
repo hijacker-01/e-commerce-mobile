@@ -127,6 +127,7 @@ model User {
   messages      Message[]
   exchanges     ExchangeRequest[]
   cart          Cart?
+  notifications Notification[]
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +207,23 @@ model Inventory {
   reorderLevel Int      @default(2)
   location     String?
   updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String // e.g. "order", "credit", "exchange"
+  title     String
+  body      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
 }
 
 // ---------------------------------------------------------------------------
