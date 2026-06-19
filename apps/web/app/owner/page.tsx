@@ -17,14 +17,24 @@ interface Invoice {
   igst: string;
   total: string;
 }
+interface Summary {
+  revenuePaid: string;
+  paidOrders: number;
+  inventoryValue: string;
+  lowStockCount: number;
+  gstCollected: string;
+  topProducts: { title: string; unitsSold: number }[];
+}
 
 export default function OwnerPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState<Summary | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
 
   function loadOrders() {
     api.get<Order[]>('/orders').then(setOrders).catch(() => {});
+    api.get<Summary>('/analytics/summary').then(setStats).catch(() => {});
   }
 
   useEffect(() => {
@@ -62,6 +72,43 @@ export default function OwnerPage() {
     <main>
       <h1>Owner dashboard</h1>
       {msg && <p className="muted">{msg}</p>}
+
+      {stats && (
+        <div className="grid" style={{ marginBottom: 24 }}>
+          <div className="card">
+            <div className="muted">Paid revenue</div>
+            <div className="price" style={{ fontSize: 22 }}>
+              ₹{stats.revenuePaid}
+            </div>
+            <div className="muted">{stats.paidOrders} paid orders</div>
+          </div>
+          <div className="card">
+            <div className="muted">Inventory value</div>
+            <div className="price" style={{ fontSize: 22 }}>
+              ₹{stats.inventoryValue}
+            </div>
+            <div className="muted">{stats.lowStockCount} low-stock items</div>
+          </div>
+          <div className="card">
+            <div className="muted">GST collected</div>
+            <div className="price" style={{ fontSize: 22 }}>
+              ₹{stats.gstCollected}
+            </div>
+          </div>
+          <div className="card">
+            <div className="muted">Top sellers</div>
+            {stats.topProducts.length === 0 ? (
+              <div className="muted">—</div>
+            ) : (
+              stats.topProducts.map((t) => (
+                <div key={t.title} style={{ fontSize: 13, marginTop: 4 }}>
+                  {t.title} · <span className="muted">{t.unitsSold} sold</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       <h2>Orders</h2>
       <table>

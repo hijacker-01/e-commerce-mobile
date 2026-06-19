@@ -59,7 +59,12 @@ npm run test:smoke --workspace apps/backend
 ```
 Drives: owner login → catalog → register customer → cart → delivery-slot order →
 owner approval (with stock decrement) → GST invoice + warranty card → coupon apply
-→ RBAC denial. 15 assertions.
+→ RBAC denial → notifications → analytics. 20 assertions.
+
+Chat-bargaining WebSocket test (auth → message → offer/accept → bad-token reject):
+```bash
+npm run test:chat --workspace apps/backend
+```
 
 ### 5. Run the apps
 ```bash

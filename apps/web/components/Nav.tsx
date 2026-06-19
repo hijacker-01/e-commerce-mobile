@@ -3,16 +3,32 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearToken, getRole, getToken } from '../lib/api';
+import { api, clearToken, getRole, getToken } from '../lib/api';
 
 export default function Nav() {
   const [authed, setAuthed] = useState(false);
   const [role, setRole] = useState<string | null>(null);
+  const [unread, setUnread] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
-    setAuthed(!!getToken());
+    const token = getToken();
+    setAuthed(!!token);
     setRole(getRole());
+    if (!token) return;
+
+    let active = true;
+    const poll = () =>
+      api
+        .get<{ count: number }>('/notifications/unread-count')
+        .then((r) => active && setUnread(r.count))
+        .catch(() => {});
+    poll();
+    const id = setInterval(poll, 20000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
   }, []);
 
   function logout() {
@@ -34,6 +50,11 @@ export default function Nav() {
         <Link href="/owner">Owner</Link>
       ) : null}
       <span style={{ flex: 1 }} />
+      {authed && (
+        <Link href="/notifications">
+          🔔{unread > 0 ? <span className="badge">{unread}</span> : null}
+        </Link>
+      )}
       {authed ? (
         <button className="secondary" onClick={logout}>
           Logout
