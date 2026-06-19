@@ -1,0 +1,498 @@
+// Electronics Commerce + ERP — data model
+// Postgres + pgvector. India/GST-ready.
+// Run: npm run db:generate && npm run db:migrate
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  OWNER
+  EMPLOYEE
+  STOCKIST
+  CUSTOMER
+}
+
+enum ProductCondition {
+  NEW
+  REFURBISHED
+  OPEN_BOX
+}
+
+enum OrderStatus {
+  REQUESTED // customer placed; awaiting owner/employee approval
+  APPROVED
+  PACKED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REJECTED
+}
+
+enum PaymentMethod {
+  ONLINE
+  UPI
+  COD
+  STORE_CREDIT
+  EMI
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum InvoiceType {
+  STANDARD // fixed bill
+  GST
+}
+
+enum ChallanType {
+  INBOUND // stockist -> shop
+  OUTBOUND // shop -> customer
+}
+
+enum ChallanStatus {
+  DRAFT
+  ISSUED
+  RECEIVED
+  CANCELLED
+}
+
+enum CouponType {
+  PERCENT
+  FLAT
+}
+
+enum ExchangeStatus {
+  SUBMITTED
+  AI_VALUED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+enum CreditStatus {
+  REQUESTED
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum OfferMessageStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+}
+
+// ---------------------------------------------------------------------------
+// Users & access (RBAC: role + granular permission flags)
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  role         Role
+  name         String
+  email        String?  @unique
+  phone        String   @unique
+  passwordHash String?
+  // Granular permission flags owner can toggle per employee, e.g.
+  // ["product.write","order.approve","invoice.create","inventory.write"]
+  permissions  String[] @default([])
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  shop          Shop?           @relation("ShopOwner")
+  stockist      Stockist?
+  orders        Order[]         @relation("CustomerOrders")
+  approvedOrders Order[]        @relation("OrderApprover")
+  reviews       Review[]
+  creditAccount CreditAccount?
+  chatThreads   ChatThread[]    @relation("CustomerThreads")
+  messages      Message[]
+  exchanges     ExchangeRequest[]
+  cart          Cart?
+}
+
+// ---------------------------------------------------------------------------
+// Shop
+// ---------------------------------------------------------------------------
+
+model Shop {
+  id        String   @id @default(cuid())
+  ownerId   String   @unique
+  owner     User     @relation("ShopOwner", fields: [ownerId], references: [id])
+  name      String
+  gstin     String?
+  address   String?
+  latitude  Float?
+  longitude Float?
+  phone     String?
+  hours     String?
+  createdAt DateTime @default(now())
+
+  products       Product[]
+  serviceCenters ServiceCenter[]
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique // e.g. Mobile, Headphone, Bluetooth Speaker
+  slug     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          String           @id @default(cuid())
+  shopId      String
+  shop        Shop             @relation(fields: [shopId], references: [id])
+  categoryId  String
+  category    Category         @relation(fields: [categoryId], references: [id])
+  brand       String
+  model       String
+  title       String
+  description String?          @db.Text
+  aiSummary   String?          @db.Text
+  // Electronics-specific facets used by smart filters (processor, ram,
+  // storage, batteryMah, audioCodec, anc, btVersion, warrantyMonths, ...)
+  specs       Json             @default("{}")
+  price       Decimal          @db.Decimal(12, 2)
+  mrp         Decimal?         @db.Decimal(12, 2)
+  hsnCode     String?
+  gstRate     Decimal          @default(18) @db.Decimal(5, 2)
+  condition   ProductCondition @default(NEW)
+  media       String[]         @default([]) // image/video URLs
+  videoLinks  String[]         @default([]) // YouTube / Instagram embeds
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  inventory        Inventory?
+  orderItems       OrderItem[]
+  reviews          Review[]
+  chatThreads      ChatThread[]
+  specialLobbyItem SpecialLobbyItem?
+  deviceKb         DeviceKB?
+  cartItems        CartItem[]
+
+  @@index([brand])
+  @@index([categoryId])
+}
+
+model Inventory {
+  id           String   @id @default(cuid())
+  productId    String   @unique
+  product      Product  @relation(fields: [productId], references: [id])
+  quantity     Int      @default(0)
+  reorderLevel Int      @default(2)
+  location     String?
+  updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Cart
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cartId    String
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
+
+  @@unique([cartId, productId])
+}
+
+// ---------------------------------------------------------------------------
+// Stockists (B2B suppliers) & challans
+// ---------------------------------------------------------------------------
+
+model Stockist {
+  id        String   @id @default(cuid())
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id])
+  name      String
+  gstin     String?
+  contact   String?
+  address   String?
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now())
+
+  challans Challan[]
+}
+
+model Challan {
+  id          String        @id @default(cuid())
+  number      String        @unique
+  type        ChallanType
+  status      ChallanStatus @default(DRAFT)
+  stockistId  String?
+  stockist    Stockist?     @relation(fields: [stockistId], references: [id])
+  orderId     String?
+  order       Order?        @relation(fields: [orderId], references: [id])
+  items       Json          @default("[]") // [{productId, name, qty, rate}]
+  totalAmount Decimal       @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime      @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Orders, delivery approval, payment
+// ---------------------------------------------------------------------------
+
+model Order {
+  id            String        @id @default(cuid())
+  number        String        @unique
+  customerId    String
+  customer      User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  status        OrderStatus   @default(REQUESTED)
+  approverId    String? // owner/employee who approved
+  approver      User?         @relation("OrderApprover", fields: [approverId], references: [id])
+  deliverySlot  DateTime? // customer-requested timing
+  deliveryAddr  String?
+  paymentMethod PaymentMethod @default(UPI)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentRef    String? // Razorpay order id (rzp_order_*)
+  subtotal      Decimal       @default(0) @db.Decimal(12, 2)
+  discount      Decimal       @default(0) @db.Decimal(12, 2)
+  gstAmount     Decimal       @default(0) @db.Decimal(12, 2)
+  total         Decimal       @default(0) @db.Decimal(12, 2)
+  couponId      String?
+  coupon        Coupon?       @relation(fields: [couponId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items    OrderItem[]
+  invoice  Invoice?
+  challans Challan[]
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
+  unitPrice Decimal @db.Decimal(12, 2)
+  gstRate   Decimal @db.Decimal(5, 2)
+}
+
+// ---------------------------------------------------------------------------
+// Billing: standard bill + GST invoice + warranty card
+// ---------------------------------------------------------------------------
+
+model Invoice {
+  id           String      @id @default(cuid())
+  number       String      @unique // sequential
+  orderId      String      @unique
+  order        Order       @relation(fields: [orderId], references: [id])
+  type         InvoiceType @default(GST)
+  buyerGstin   String? // for GST input-credit claim by B2B buyer
+  sellerGstin  String?
+  cgst         Decimal     @default(0) @db.Decimal(12, 2)
+  sgst         Decimal     @default(0) @db.Decimal(12, 2)
+  igst         Decimal     @default(0) @db.Decimal(12, 2)
+  total        Decimal     @db.Decimal(12, 2)
+  pdfUrl       String?
+  warrantyCard WarrantyCard?
+  irn          String? // GST e-invoice reference (if applicable)
+  createdAt    DateTime    @default(now())
+}
+
+model WarrantyCard {
+  id           String   @id @default(cuid())
+  invoiceId    String   @unique
+  invoice      Invoice  @relation(fields: [invoiceId], references: [id])
+  serialOrImei String?
+  brand        String
+  model        String
+  months       Int      @default(12)
+  startDate    DateTime @default(now())
+  pdfUrl       String?
+}
+
+// ---------------------------------------------------------------------------
+// Credit model (owner-defined), exchange, coupons, offers, lobby
+// ---------------------------------------------------------------------------
+
+model CreditAccount {
+  id          String        @id @default(cuid())
+  userId      String        @unique
+  user        User          @relation(fields: [userId], references: [id])
+  status      CreditStatus  @default(REQUESTED)
+  limit       Decimal       @default(0) @db.Decimal(12, 2)
+  balance     Decimal       @default(0) @db.Decimal(12, 2)
+  tenureDays  Int           @default(30)
+  interestPct Decimal       @default(0) @db.Decimal(5, 2)
+  createdAt   DateTime      @default(now())
+  ledger      CreditLedger[]
+}
+
+model CreditLedger {
+  id        String        @id @default(cuid())
+  accountId String
+  account   CreditAccount @relation(fields: [accountId], references: [id])
+  amount    Decimal       @db.Decimal(12, 2) // +debit / -credit
+  reason    String
+  dueDate   DateTime?
+  createdAt DateTime      @default(now())
+}
+
+model ExchangeRequest {
+  id            String         @id @default(cuid())
+  customerId    String
+  customer      User           @relation(fields: [customerId], references: [id])
+  brand         String
+  model         String
+  condition     String
+  photos        String[]       @default([])
+  aiValue       Decimal?       @db.Decimal(12, 2)
+  approvedValue Decimal?       @db.Decimal(12, 2)
+  status        ExchangeStatus @default(SUBMITTED)
+  createdAt     DateTime       @default(now())
+}
+
+model Coupon {
+  id           String     @id @default(cuid())
+  code         String     @unique
+  type         CouponType
+  value        Decimal    @db.Decimal(12, 2)
+  minOrder     Decimal    @default(0) @db.Decimal(12, 2)
+  scope        Json       @default("{}") // {categoryIds?, productIds?}
+  usageLimit   Int?
+  usedCount    Int        @default(0)
+  expiresAt    DateTime?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  orders       Order[]
+}
+
+model Offer {
+  id        String   @id @default(cuid())
+  title     String
+  bannerUrl String?
+  startsAt  DateTime
+  endsAt    DateTime
+  scope     Json     @default("{}")
+  createdAt DateTime @default(now())
+}
+
+model SpecialLobbyItem {
+  id        String  @id @default(cuid())
+  productId String  @unique
+  product   Product @relation(fields: [productId], references: [id])
+  position  Int     @default(0)
+  bannerUrl String?
+}
+
+// ---------------------------------------------------------------------------
+// Reviews (with AI sentiment)
+// ---------------------------------------------------------------------------
+
+model Review {
+  id           String   @id @default(cuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  rating       Int // 1..5
+  text         String?  @db.Text
+  photos       String[] @default([])
+  verified     Boolean  @default(false)
+  aiSentiment  String? // positive | neutral | negative
+  createdAt    DateTime @default(now())
+
+  @@index([productId])
+}
+
+// ---------------------------------------------------------------------------
+// Bargaining: chat threads, messages, structured offers
+// ---------------------------------------------------------------------------
+
+model ChatThread {
+  id         String    @id @default(cuid())
+  productId  String?
+  product    Product?  @relation(fields: [productId], references: [id])
+  customerId String
+  customer   User      @relation("CustomerThreads", fields: [customerId], references: [id])
+  createdAt  DateTime  @default(now())
+  messages   Message[]
+}
+
+model Message {
+  id          String             @id @default(cuid())
+  threadId    String
+  thread      ChatThread         @relation(fields: [threadId], references: [id])
+  senderId    String
+  sender      User               @relation(fields: [senderId], references: [id])
+  body        String?            @db.Text
+  // structured bargaining offer (optional)
+  offerAmount Decimal?           @db.Decimal(12, 2)
+  offerStatus OfferMessageStatus?
+  createdAt   DateTime           @default(now())
+
+  @@index([threadId])
+}
+
+// ---------------------------------------------------------------------------
+// Service centers directory
+// ---------------------------------------------------------------------------
+
+model ServiceCenter {
+  id        String  @id @default(cuid())
+  shopId    String?
+  shop      Shop?   @relation(fields: [shopId], references: [id])
+  brand     String
+  name      String
+  address   String?
+  latitude  Float?
+  longitude Float?
+  phone     String?
+  hours     String?
+
+  @@index([brand])
+}
+
+// ---------------------------------------------------------------------------
+// AI device knowledge base (specs + ground-level perf + embedding for RAG)
+// ---------------------------------------------------------------------------
+
+model DeviceKB {
+  id          String                       @id @default(cuid())
+  productId   String                       @unique
+  product     Product                      @relation(fields: [productId], references: [id])
+  benchmarks  Json                         @default("{}") // {antutu, geekbench,...}
+  groundPerf  Json                         @default("{}") // real-world battery/audio/camera
+  docText     String?                      @db.Text // combined text for retrieval
+  embedding   Unsupported("vector(1536)")? // pgvector for similarity search
+  updatedAt   DateTime                     @updatedAt
+}

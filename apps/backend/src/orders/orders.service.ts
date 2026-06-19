@@ -1,0 +1,117 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { OrderStatus, Prisma, Role } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateOrderDto } from './dto/order.dto';
+import { AuthUser } from '../auth/decorators/current-user.decorator';
+
+@Injectable()
+export class OrdersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** Customer places an order; starts as REQUESTED, awaiting approval. */
+  async create(customerId: string, dto: CreateOrderDto) {
+    const productIds = dto.items.map((i) => i.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+    });
+    if (products.length !== productIds.length) {
+      throw new BadRequestException('One or more products not found');
+    }
+
+    const priceById = new Map(products.map((p) => [p.id, p]));
+    let subtotal = new Prisma.Decimal(0);
+    let gstAmount = new Prisma.Decimal(0);
+
+    const items = dto.items.map((item) => {
+      const product = priceById.get(item.productId)!;
+      const lineTotal = product.price.mul(item.quantity);
+      subtotal = subtotal.add(lineTotal);
+      gstAmount = gstAmount.add(lineTotal.mul(product.gstRate).div(100));
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: product.price,
+        gstRate: product.gstRate,
+      };
+    });
+
+    const total = subtotal.add(gstAmount);
+
+    return this.prisma.order.create({
+      data: {
+        number: `ORD-${Date.now()}`,
+        customerId,
+        deliverySlot: dto.deliverySlot ? new Date(dto.deliverySlot) : undefined,
+        deliveryAddr: dto.deliveryAddr,
+        paymentMethod: dto.paymentMethod,
+        subtotal,
+        gstAmount,
+        total,
+        items: { create: items },
+      },
+      include: { items: true },
+    });
+  }
+
+  async findForUser(user: AuthUser) {
+    // Customers see only their own orders; staff see all.
+    const where: Prisma.OrderWhereInput =
+      user.role === Role.CUSTOMER ? { customerId: user.id } : {};
+    return this.prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: { items: true, invoice: true },
+    });
+  }
+
+  /** Owner/employee approves or advances order status. */
+  async updateStatus(orderId: string, status: OrderStatus, approver: AuthUser) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+
+    if (status === OrderStatus.APPROVED && approver.role === Role.CUSTOMER) {
+      throw new ForbiddenException('Customers cannot approve orders');
+    }
+
+    // Decrement stock once, on the first approval (REQUESTED -> APPROVED).
+    const isFirstApproval =
+      status === OrderStatus.APPROVED &&
+      order.status === OrderStatus.REQUESTED;
+
+    return this.prisma.$transaction(async (tx) => {
+      if (isFirstApproval) {
+        for (const item of order.items) {
+          const inv = await tx.inventory.findUnique({
+            where: { productId: item.productId },
+          });
+          if (!inv || inv.quantity < item.quantity) {
+            throw new BadRequestException(
+              `Insufficient stock for product ${item.productId}`,
+            );
+          }
+          await tx.inventory.update({
+            where: { productId: item.productId },
+            data: { quantity: { decrement: item.quantity } },
+          });
+        }
+      }
+
+      return tx.order.update({
+        where: { id: orderId },
+        data: {
+          status,
+          approverId:
+            status === OrderStatus.APPROVED ? approver.id : order.approverId,
+        },
+      });
+    });
+  }
+}

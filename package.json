@@ -1,0 +1,23 @@
+{
+  "name": "electronics-commerce-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-role electronics marketplace + ERP with AI device-intelligence engine (Web + Mobile)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "backend": "npm run start:dev --workspace apps/backend",
+    "web": "npm run dev --workspace apps/web",
+    "mobile": "npm run start --workspace apps/mobile",
+    "db:generate": "npm run prisma:generate --workspace apps/backend",
+    "db:migrate": "npm run prisma:migrate --workspace apps/backend",
+    "db:seed": "npm run prisma:seed --workspace apps/backend"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
