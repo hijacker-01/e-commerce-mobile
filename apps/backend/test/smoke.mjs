@@ -180,6 +180,37 @@ async function main() {
   check(reviewed.status === 'APPROVED', 'owner approved exchange');
   check(Number(reviewed.approvedValue) === 22000, 'approved value set');
 
+  console.log('14. Stockist supply: register → challan → receive (stock up)');
+  const before = await api(`/products/${product.id}`);
+  const beforeQty = before.inventory?.quantity ?? 0;
+  const stockist = await api('/stockists', {
+    method: 'POST',
+    token: owner.accessToken,
+    body: { name: 'Acme Distributors', gstin: '27ZZZZZ1234Z1Z5' },
+  });
+  check(stockist.id, 'stockist registered');
+  const challan = await api('/stockists/challans', {
+    method: 'POST',
+    token: owner.accessToken,
+    body: {
+      stockistId: stockist.id,
+      items: [
+        { productId: product.id, name: product.title, quantity: 5, rate: 25000 },
+      ],
+    },
+  });
+  check(challan.number?.startsWith('CH-'), `challan issued ${challan.number}`);
+  check(Number(challan.totalAmount) === 125000, 'challan total computed');
+  await api(`/stockists/challans/${challan.id}/receive`, {
+    method: 'POST',
+    token: owner.accessToken,
+  });
+  const restocked = await api(`/products/${product.id}`);
+  check(
+    restocked.inventory.quantity === beforeQty + 5,
+    `inventory increased ${beforeQty} -> ${restocked.inventory.quantity}`,
+  );
+
   console.log(`\nALL ${passed} CHECKS PASSED ✅`);
 }
 

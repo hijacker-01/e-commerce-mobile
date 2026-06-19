@@ -59,7 +59,8 @@ npm run test:smoke --workspace apps/backend
 ```
 Drives: owner login → catalog → register customer → cart → delivery-slot order →
 owner approval (with stock decrement) → GST invoice + warranty card → coupon apply
-→ RBAC denial → notifications → analytics. 20 assertions.
+→ RBAC denial → notifications → analytics → credit → exchange → stockist
+challan/GRN. 29 assertions.
 
 Chat-bargaining WebSocket test (auth → message → offer/accept → bad-token reject):
 ```bash
@@ -115,6 +116,10 @@ npm run mobile                # Expo  -> scan QR / press a (Android) / i (iOS)
 | GET | `/api/notifications/unread-count` | authed |
 | POST | `/api/notifications/:id/read` / `/read-all` | authed |
 | GET | `/api/analytics/summary` | OWNER / EMPLOYEE (sales/inventory/GST) |
+| POST/GET | `/api/stockists` | OWNER / EMPLOYEE (registry) |
+| POST | `/api/stockists/challans` | OWNER / EMPLOYEE+`challan.create` |
+| GET | `/api/stockists/challans` | OWNER / EMPLOYEE |
+| POST | `/api/stockists/challans/:id/receive` | OWNER / EMPLOYEE+`inventory.write` (GRN → stock) |
 | GET | `/api/cart` | CUSTOMER |
 | POST | `/api/cart/items` | CUSTOMER (add to cart) |
 | PATCH | `/api/cart/items/:productId` | CUSTOMER (qty; 0 removes) |
