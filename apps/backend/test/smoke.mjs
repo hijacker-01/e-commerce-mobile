@@ -1,0 +1,139 @@
+// End-to-end smoke test against a running API + seeded DB.
+// Run: node apps/backend/test/smoke.mjs  (API must be on :4000)
+const BASE = process.env.API_URL ?? 'http://localhost:4000/api';
+
+let passed = 0;
+function check(cond, label) {
+  if (!cond) throw new Error(`ASSERT FAILED: ${label}`);
+  passed++;
+  console.log(`  ✓ ${label}`);
+}
+
+async function api(path, { method = 'GET', token, body } = {}) {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) {
+    throw new Error(`${method} ${path} -> ${res.status}: ${text}`);
+  }
+  return data;
+}
+
+async function main() {
+  console.log('1. Owner login (seeded)');
+  const owner = await api('/auth/login', {
+    method: 'POST',
+    body: { phone: '9000000001', password: 'password123' },
+  });
+  check(owner.accessToken, 'owner got access token');
+
+  console.log('2. Public catalog');
+  const products = await api('/products');
+  check(Array.isArray(products) && products.length > 0, 'catalog has products');
+  const product = products[0];
+  const startStock = product.inventory?.quantity ?? 0;
+  check(startStock > 0, `seeded product in stock (${startStock})`);
+
+  console.log('3. Register a fresh customer');
+  const phone = `9${Date.now().toString().slice(-9)}`;
+  const cust = await api('/auth/register', {
+    method: 'POST',
+    body: { name: 'Test Buyer', phone, password: 'password123', role: 'CUSTOMER' },
+  });
+  check(cust.accessToken, 'customer registered + token');
+  const ctoken = cust.accessToken;
+
+  console.log('4. Add to cart');
+  const cart = await api('/cart/items', {
+    method: 'POST',
+    token: ctoken,
+    body: { productId: product.id, quantity: 1 },
+  });
+  check(cart.items.length === 1, 'cart has 1 line');
+  check(cart.subtotal === product.price, 'cart subtotal matches price');
+
+  console.log('5. Place order with delivery slot');
+  const order = await api('/orders', {
+    method: 'POST',
+    token: ctoken,
+    body: {
+      items: [{ productId: product.id, quantity: 1 }],
+      deliverySlot: new Date(Date.now() + 86400000).toISOString(),
+      paymentMethod: 'UPI',
+    },
+  });
+  check(order.status === 'REQUESTED', 'order starts REQUESTED');
+  check(Number(order.gstAmount) > 0, `GST computed (${order.gstAmount})`);
+
+  console.log('6. Owner approves order (decrements stock)');
+  const approved = await api(`/orders/${order.id}/status`, {
+    method: 'PATCH',
+    token: owner.accessToken,
+    body: { status: 'APPROVED' },
+  });
+  check(approved.status === 'APPROVED', 'order APPROVED');
+  const after = await api(`/products/${product.id}`);
+  check(
+    after.inventory.quantity === startStock - 1,
+    `stock decremented ${startStock} -> ${after.inventory.quantity}`,
+  );
+
+  console.log('7. Owner generates GST invoice + warranty card');
+  const invoice = await api('/invoices', {
+    method: 'POST',
+    token: owner.accessToken,
+    body: { orderId: order.id, type: 'GST' },
+  });
+  check(invoice.number?.startsWith('INV-'), `invoice numbered ${invoice.number}`);
+  check(
+    Number(invoice.cgst) > 0 && Number(invoice.sgst) > 0,
+    `intra-state CGST+SGST split (cgst=${invoice.cgst}, sgst=${invoice.sgst})`,
+  );
+  check(invoice.warrantyCard, 'warranty card created');
+
+  console.log('8. Coupon: owner creates, customer applies');
+  const code = `SAVE${Date.now().toString().slice(-5)}`;
+  await api('/coupons', {
+    method: 'POST',
+    token: owner.accessToken,
+    body: { code, type: 'PERCENT', value: 10 },
+  });
+  const order2 = await api('/orders', {
+    method: 'POST',
+    token: ctoken,
+    body: { items: [{ productId: product.id, quantity: 1 }], paymentMethod: 'COD' },
+  });
+  const discounted = await api('/coupons/apply', {
+    method: 'POST',
+    token: ctoken,
+    body: { orderId: order2.id, code },
+  });
+  check(Number(discounted.discount) > 0, `coupon discount applied (${discounted.discount})`);
+
+  console.log('9. RBAC: customer cannot approve orders (expect 403)');
+  let forbidden = false;
+  try {
+    await api(`/orders/${order2.id}/status`, {
+      method: 'PATCH',
+      token: ctoken,
+      body: { status: 'APPROVED' },
+    });
+  } catch (e) {
+    forbidden = /403/.test(e.message);
+  }
+  check(forbidden, 'customer blocked from approving (RBAC works)');
+
+  console.log(`\nALL ${passed} CHECKS PASSED ✅`);
+}
+
+main().catch((e) => {
+  console.error('\nSMOKE TEST FAILED ❌\n', e.message);
+  process.exit(1);
+});
