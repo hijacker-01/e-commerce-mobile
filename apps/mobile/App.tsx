@@ -1,67 +1,78 @@
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import type { Product } from '@ecom/shared';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { useState } from 'react';
+import { SafeAreaView, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { clearAuth, isAuthed } from './src/api';
+import { Route } from './src/nav';
+import { colors } from './src/theme';
+import LoginScreen from './src/screens/LoginScreen';
+import CatalogScreen from './src/screens/CatalogScreen';
+import ProductScreen from './src/screens/ProductScreen';
+import CartScreen from './src/screens/CartScreen';
+import OrdersScreen from './src/screens/OrdersScreen';
 
 export default function App() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [stack, setStack] = useState<Route[]>([{ name: 'login' }]);
+  const route = stack[stack.length - 1];
 
-  useEffect(() => {
-    fetch(`${API_URL}/api/products`)
-      .then((r) => r.json())
-      .then(setProducts)
-      .catch(() => setError('Backend not reachable. Run `npm run backend`.'))
-      .finally(() => setLoading(false));
-  }, []);
+  const go = (r: Route) => setStack((s) => [...s, r]);
+  const back = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  const reset = (r: Route) => setStack([r]);
+
+  function logout() {
+    clearAuth();
+    reset({ name: 'login' });
+  }
+
+  function render() {
+    switch (route.name) {
+      case 'login':
+        return <LoginScreen go={reset} back={back} />;
+      case 'catalog':
+        return <CatalogScreen go={go} back={back} />;
+      case 'product':
+        return <ProductScreen id={route.id} go={go} back={back} />;
+      case 'cart':
+        return <CartScreen go={go} back={back} />;
+      case 'orders':
+        return <OrdersScreen />;
+    }
+  }
+
+  const authed = isAuthed() && route.name !== 'login';
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <Text style={styles.title}>Electronics Store</Text>
-      {loading && <ActivityIndicator color="#fff" />}
-      {error && <Text style={styles.error}>{error}</Text>}
-      <FlatList
-        data={products}
-        keyExtractor={(p) => p.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardMeta}>
-              {item.brand} {item.model}
-            </Text>
-            <Text style={styles.price}>₹{item.price}</Text>
-          </View>
-        )}
-        ListEmptyComponent={
-          !loading && !error ? <Text style={styles.meta}>No products yet.</Text> : null
-        }
-      />
-    </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <StatusBar barStyle="light-content" />
+      {authed && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 16,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            backgroundColor: colors.panel,
+            borderBottomColor: colors.border,
+            borderBottomWidth: 1,
+          }}
+        >
+          <Text style={{ color: colors.text, fontWeight: '700', flex: 1 }}>
+            ⚡ Store
+          </Text>
+          <TouchableOpacity onPress={() => reset({ name: 'catalog' })}>
+            <Text style={{ color: colors.muted }}>Shop</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => go({ name: 'cart' })}>
+            <Text style={{ color: colors.muted }}>Cart</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => go({ name: 'orders' })}>
+            <Text style={{ color: colors.muted }}>Orders</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout}>
+            <Text style={{ color: colors.danger }}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      <View style={{ flex: 1 }}>{render()}</View>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0b1220', padding: 20, paddingTop: 60 },
-  title: { color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 16 },
-  meta: { color: '#9aa4b2' },
-  error: { color: '#ff6b6b', marginBottom: 12 },
-  card: {
-    backgroundColor: '#131c2e',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  cardTitle: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  cardMeta: { color: '#9aa4b2', fontSize: 13, marginTop: 2 },
-  price: { color: '#4ade80', fontSize: 15, fontWeight: '700', marginTop: 8 },
-});
