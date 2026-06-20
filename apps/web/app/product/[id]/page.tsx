@@ -56,6 +56,16 @@ export default function ProductPage({
     }
   }
 
+  async function saveToWishlist() {
+    if (!getToken()) return setNote('Please log in first.');
+    try {
+      await api.post(`/wishlist/${id}`);
+      setNote('Saved to wishlist ♥');
+    } catch (e) {
+      setNote((e as Error).message);
+    }
+  }
+
   async function bargain() {
     if (!getToken()) return setNote('Please log in first.');
     try {
@@ -113,6 +123,20 @@ export default function ProductPage({
         <button className="secondary" onClick={bargain}>
           💬 Bargain
         </button>
+        <button className="secondary" onClick={saveToWishlist}>
+          ♥ Save
+        </button>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <strong>No-cost EMI</strong>
+        <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
+          {[3, 6, 9, 12].map((m) => (
+            <span key={m} className="badge" style={{ fontSize: 13 }}>
+              {m} mo · ₹{Math.round(Number(product.price) / m).toLocaleString('en-IN')}/mo
+            </span>
+          ))}
+        </div>
       </div>
       {note && (
         <p className="muted" style={{ marginTop: 8 }}>

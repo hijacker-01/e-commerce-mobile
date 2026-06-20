@@ -99,6 +99,13 @@ enum OfferMessageStatus {
   COUNTERED
 }
 
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
 // ---------------------------------------------------------------------------
 // Users & access (RBAC: role + granular permission flags)
 // ---------------------------------------------------------------------------
@@ -129,6 +136,8 @@ model User {
   exchanges     ExchangeRequest[]
   cart          Cart?
   notifications Notification[]
+  wishlist      WishlistItem[]
+  returns       Return[]
 }
 
 // ---------------------------------------------------------------------------
@@ -195,6 +204,7 @@ model Product {
   specialLobbyItem SpecialLobbyItem?
   deviceKb         DeviceKB?
   cartItems        CartItem[]
+  wishlistItems    WishlistItem[]
 
   @@index([brand])
   @@index([categoryId])
@@ -248,6 +258,32 @@ model CartItem {
   quantity  Int     @default(1)
 
   @@unique([cartId, productId])
+}
+
+// ---------------------------------------------------------------------------
+// Wishlist & returns (RMA)
+// ---------------------------------------------------------------------------
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model Return {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     Order        @relation(fields: [orderId], references: [id])
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  reason    String
+  status    ReturnStatus @default(REQUESTED)
+  createdAt DateTime     @default(now())
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +348,7 @@ model Order {
   items    OrderItem[]
   invoice  Invoice?
   challans Challan[]
+  returns  Return[]
 }
 
 model OrderItem {

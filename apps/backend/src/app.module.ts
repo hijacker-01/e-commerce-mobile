@@ -19,6 +19,9 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { StockistsModule } from './stockists/stockists.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
+import { WishlistModule } from './wishlist/wishlist.module';
+import { ReturnsModule } from './returns/returns.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -42,6 +45,9 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
     AnalyticsModule,
     StockistsModule,
     LoyaltyModule,
+    WishlistModule,
+    ReturnsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

@@ -1,17 +1,30 @@
-// Lightweight API client for the mobile app.
-// Token is held in memory (MVP) — swap for AsyncStorage to persist sessions.
+// Lightweight API client for the mobile app, with persisted auth.
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 let token: string | null = null;
 let role: string | null = null;
 
-export function setAuth(t: string, r: string) {
+export async function setAuth(t: string, r: string) {
   token = t;
   role = r;
+  await AsyncStorage.multiSet([
+    ['token', t],
+    ['role', r],
+  ]);
 }
-export function clearAuth() {
+export async function clearAuth() {
   token = null;
   role = null;
+  await AsyncStorage.multiRemove(['token', 'role']);
+}
+/** Hydrate the in-memory session from storage on app start. */
+export async function loadAuth(): Promise<boolean> {
+  const [[, t], [, r]] = await AsyncStorage.multiGet(['token', 'role']);
+  token = t;
+  role = r;
+  return !!token;
 }
 export function getRole() {
   return role;

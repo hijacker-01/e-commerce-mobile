@@ -225,6 +225,33 @@ async function main() {
     `inventory increased ${beforeQty} -> ${restocked.inventory.quantity}`,
   );
 
+  console.log('15. Health check');
+  const health = await api('/health');
+  check(health.status === 'ok' && health.db === 'up', 'health reports DB up');
+
+  console.log('16. Wishlist: add → list → remove');
+  const wl = await api(`/wishlist/${product.id}`, { method: 'POST', token: ctoken });
+  check(wl.some((w) => w.productId === product.id), 'product added to wishlist');
+  const wl2 = await api(`/wishlist/${product.id}`, {
+    method: 'DELETE',
+    token: ctoken,
+  });
+  check(!wl2.some((w) => w.productId === product.id), 'product removed from wishlist');
+
+  console.log('17. Returns/RMA: request → owner approves');
+  const ret = await api('/returns', {
+    method: 'POST',
+    token: ctoken,
+    body: { orderId: order.id, reason: 'Defective unit' },
+  });
+  check(ret.status === 'REQUESTED', 'return requested');
+  const decided = await api(`/returns/${ret.id}`, {
+    method: 'PATCH',
+    token: owner.accessToken,
+    body: { decision: 'approve' },
+  });
+  check(decided.status === 'APPROVED', 'owner approved return');
+
   console.log(`\nALL ${passed} CHECKS PASSED ✅`);
 }
 

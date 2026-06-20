@@ -16,7 +16,19 @@ interface Order {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [points, setPoints] = useState<number | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   const router = useRouter();
+
+  async function requestReturn(orderId: string) {
+    const reason = window.prompt('Reason for return?');
+    if (!reason) return;
+    try {
+      await api.post('/returns', { orderId, reason });
+      setNote('Return requested ✓');
+    } catch (e) {
+      setNote((e as Error).message);
+    }
+  }
 
   useEffect(() => {
     if (!getToken()) {
@@ -39,6 +51,7 @@ export default function OrdersPage() {
           <span className="badge">★ {points} loyalty points</span>
         )}
       </div>
+      {note && <p className="muted">{note}</p>}
       {orders.length === 0 ? (
         <p className="muted">No orders yet.</p>
       ) : (
@@ -49,6 +62,7 @@ export default function OrdersPage() {
               <th>Status</th>
               <th>Payment</th>
               <th>Total</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -60,6 +74,13 @@ export default function OrdersPage() {
                 </td>
                 <td>{o.paymentStatus}</td>
                 <td>₹{o.total}</td>
+                <td>
+                  {['APPROVED', 'DELIVERED'].includes(o.status) && (
+                    <button className="secondary" onClick={() => requestReturn(o.id)}>
+                      Return
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

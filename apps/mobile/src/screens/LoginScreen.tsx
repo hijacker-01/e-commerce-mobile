@@ -32,9 +32,9 @@ export default function LoginScreen({ go }: NavProps) {
               password,
               role: 'CUSTOMER',
             });
-      setAuth(resp.accessToken, 'CUSTOMER');
+      await setAuth(resp.accessToken, 'CUSTOMER');
       const me = await api.get<Me>('/auth/me');
-      setAuth(resp.accessToken, me.role);
+      await setAuth(resp.accessToken, me.role);
       go({ name: 'catalog' });
     } catch (e) {
       setError((e as Error).message);
