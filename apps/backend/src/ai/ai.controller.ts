@@ -1,10 +1,11 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { AiService } from './ai.service';
-import { CompareDto, RecommendDto, DraftListingDto } from './dto/ai.dto';
+import { CompareDto, RecommendDto, DraftListingDto, SupportDto } from './dto/ai.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('ai')
 export class AiController {
@@ -29,5 +30,11 @@ export class AiController {
   @Post('draft-listing')
   draftListing(@Body() dto: DraftListingDto) {
     return this.ai.draftListing(dto.brand, dto.model, dto.category);
+  }
+
+  // AI support chatbot — grounded in the signed-in customer's orders.
+  @Post('support')
+  support(@CurrentUser() user: AuthUser, @Body() dto: SupportDto) {
+    return this.ai.support(user.id, dto.question);
   }
 }

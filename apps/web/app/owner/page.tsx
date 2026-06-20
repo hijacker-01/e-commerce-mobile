@@ -110,6 +110,9 @@ export default function OwnerPage() {
         <a className="btn secondary" href="/owner/returns">
           Returns
         </a>
+        <a className="btn secondary" href="/owner/audit">
+          Audit log
+        </a>
       </div>
       {msg && <p className="muted">{msg}</p>}
 

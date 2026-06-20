@@ -16,10 +16,15 @@ interface LobbyItem {
   id: string;
   product: Product;
 }
+interface Offer {
+  id: string;
+  title: string;
+}
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [lobby, setLobby] = useState<LobbyItem[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [q, setQ] = useState('');
   const [brand, setBrand] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +53,7 @@ export default function Home() {
   useEffect(() => {
     load();
     api.get<LobbyItem[]>('/lobby').then(setLobby).catch(() => {});
+    api.get<Offer[]>('/offers').then(setOffers).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -66,6 +72,15 @@ export default function Home() {
 
   return (
     <main>
+      {offers.length > 0 && (
+        <div
+          className="card"
+          style={{ borderColor: 'var(--accent)', marginBottom: 16 }}
+        >
+          🎉 <strong>Live offers:</strong>{' '}
+          {offers.map((o) => o.title).join(' · ')}
+        </div>
+      )}
       {lobby.length > 0 && (
         <section style={{ marginBottom: 28 }}>
           <h2>✨ Owner&apos;s picks</h2>

@@ -6,20 +6,27 @@ import { PdfService } from './pdf.service';
 import { CreateInvoiceDto } from './dto/invoice.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
+import { AuditService } from '../audit/audit.service';
 
 @Controller('invoices')
 export class InvoicesController {
   constructor(
     private readonly invoices: InvoicesService,
     private readonly pdf: PdfService,
+    private readonly audit: AuditService,
   ) {}
 
   // Owner, or employee with 'invoice.create', can issue invoices.
   @Roles(Role.OWNER, Role.EMPLOYEE)
   @RequirePermissions('invoice.create')
   @Post()
-  create(@Body() dto: CreateInvoiceDto) {
-    return this.invoices.createFromOrder(dto);
+  async create(@Body() dto: CreateInvoiceDto, @CurrentUser() user: AuthUser) {
+    const invoice = await this.invoices.createFromOrder(dto);
+    await this.audit.log(user.id, 'create', 'invoice', invoice.id, {
+      number: invoice.number,
+    });
+    return invoice;
   }
 
   @Roles(Role.OWNER, Role.EMPLOYEE)

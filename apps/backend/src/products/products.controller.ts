@@ -5,10 +5,15 @@ import { CreateProductDto, ProductQueryDto } from './dto/product.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
+import { AuditService } from '../audit/audit.service';
 
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly products: ProductsService) {}
+  constructor(
+    private readonly products: ProductsService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Public()
   @Get()
@@ -26,7 +31,11 @@ export class ProductsController {
   @Roles(Role.OWNER, Role.EMPLOYEE)
   @RequirePermissions('product.write')
   @Post()
-  create(@Body() dto: CreateProductDto) {
-    return this.products.create(dto);
+  async create(@Body() dto: CreateProductDto, @CurrentUser() user: AuthUser) {
+    const product = await this.products.create(dto);
+    await this.audit.log(user.id, 'create', 'product', product.id, {
+      title: product.title,
+    });
+    return product;
   }
 }

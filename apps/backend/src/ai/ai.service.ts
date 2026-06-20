@@ -230,6 +230,47 @@ export class AiService {
     }
   }
 
+  /** Customer support chatbot grounded in the user's recent orders. */
+  async support(userId: string, question: string): Promise<{ answer: string }> {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'AI engine not configured (set ANTHROPIC_API_KEY)',
+      );
+    }
+    const orders = await this.prisma.order.findMany({
+      where: { customerId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { number: true, status: true, total: true, paymentStatus: true },
+    });
+    const system =
+      'You are a concise, friendly support agent for an Indian electronics ' +
+      'store. Answer using the customer order context when relevant; for ' +
+      'product fit questions give practical guidance. Keep replies short.';
+    try {
+      const response = await this.client.messages.create({
+        model: this.fastModel,
+        max_tokens: 1024,
+        system,
+        messages: [
+          {
+            role: 'user',
+            content:
+              `My recent orders: ${JSON.stringify(orders)}\n\nQuestion: ${question}`,
+          },
+        ],
+      });
+      const text = response.content
+        .filter((b) => b.type === 'text')
+        .map((b) => (b as { text: string }).text)
+        .join('\n');
+      return { answer: text };
+    } catch (err) {
+      this.logger.error('AI support failed', err as Error);
+      throw new ServiceUnavailableException('AI support failed');
+    }
+  }
+
   // --- helpers -------------------------------------------------------------
 
   private async loadDevices(

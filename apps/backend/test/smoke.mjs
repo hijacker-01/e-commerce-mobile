@@ -90,10 +90,11 @@ async function main() {
   check(loyalty.points > 0, `loyalty points earned (${loyalty.points})`);
 
   console.log('7. Owner generates GST invoice + warranty card');
+  const imei = `IMEI${Date.now()}`;
   const invoice = await api('/invoices', {
     method: 'POST',
     token: owner.accessToken,
-    body: { orderId: order.id, type: 'GST' },
+    body: { orderId: order.id, type: 'GST', serialOrImei: imei },
   });
   check(invoice.number?.startsWith('INV-'), `invoice numbered ${invoice.number}`);
   check(
@@ -263,6 +264,46 @@ async function main() {
     found.hits.some((h) => h.id === product.id),
     `search returned the product via ${found.engine}`,
   );
+
+  console.log('19. Genuine-product / warranty verification by IMEI');
+  const genuine = await api(`/verify/imei/${imei}`);
+  check(genuine.genuine === true && genuine.brand === product.brand, 'IMEI verified as genuine');
+  const fake = await api('/verify/imei/NOPE-000');
+  check(fake.genuine === false, 'unknown IMEI reported not genuine');
+
+  console.log('20. Flash-sale offers: owner creates → public sees active');
+  await api('/offers', {
+    method: 'POST',
+    token: owner.accessToken,
+    body: {
+      title: 'Diwali Sale',
+      startsAt: new Date(Date.now() - 3600000).toISOString(),
+      endsAt: new Date(Date.now() + 86400000).toISOString(),
+    },
+  });
+  const offers = await api('/offers');
+  check(offers.some((o) => o.title === 'Diwali Sale'), 'active offer listed publicly');
+
+  console.log('21. Audit log captures ERP actions');
+  const audit = await api('/audit', { token: owner.accessToken });
+  check(
+    audit.some((a) => a.entity === 'order' || a.entity === 'invoice'),
+    `audit log populated (${audit.length} entries)`,
+  );
+
+  console.log('22. AI support endpoint responds (503 without key is OK)');
+  let supportOk = false;
+  try {
+    const r = await api('/ai/support', {
+      method: 'POST',
+      token: ctoken,
+      body: { question: 'Where is my order?' },
+    });
+    supportOk = typeof r.answer === 'string';
+  } catch (e) {
+    supportOk = /503/.test(e.message); // graceful when ANTHROPIC_API_KEY unset
+  }
+  check(supportOk, 'AI support replies or degrades gracefully');
 
   console.log(`\nALL ${passed} CHECKS PASSED ✅`);
 }

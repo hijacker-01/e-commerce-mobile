@@ -45,6 +45,8 @@ export default function Nav() {
       </Link>
       <Link href="/">Shop</Link>
       <Link href="/services">Services</Link>
+      <Link href="/verify">Verify</Link>
+      {authed && role === 'CUSTOMER' && <Link href="/support">Support</Link>}
       {authed && <Link href="/cart">Cart</Link>}
       {authed && <Link href="/orders">My Orders</Link>}
       {authed && <Link href="/chat">Bargain</Link>}

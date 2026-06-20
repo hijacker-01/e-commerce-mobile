@@ -138,6 +138,7 @@ model User {
   notifications Notification[]
   wishlist      WishlistItem[]
   returns       Return[]
+  auditLogs     AuditLog[]
 }
 
 // ---------------------------------------------------------------------------
@@ -218,6 +219,23 @@ model Inventory {
   reorderLevel Int      @default(2)
   location     String?
   updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Audit log
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String // e.g. "create", "status:APPROVED"
+  entity    String // e.g. "product", "order", "invoice"
+  entityId  String?
+  meta      Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([entity, createdAt])
 }
 
 // ---------------------------------------------------------------------------

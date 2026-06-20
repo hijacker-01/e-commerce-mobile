@@ -23,6 +23,9 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { ReturnsModule } from './returns/returns.module';
 import { HealthModule } from './health/health.module';
 import { SearchModule } from './search/search.module';
+import { AuditModule } from './audit/audit.module';
+import { OffersModule } from './offers/offers.module';
+import { VerifyModule } from './verify/verify.module';
 
 @Module({
   imports: [
@@ -50,6 +53,9 @@ import { SearchModule } from './search/search.module';
     ReturnsModule,
     HealthModule,
     SearchModule,
+    AuditModule,
+    OffersModule,
+    VerifyModule,
   ],
 })
 export class AppModule {}
