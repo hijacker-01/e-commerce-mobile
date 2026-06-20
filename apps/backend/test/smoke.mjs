@@ -164,6 +164,8 @@ async function main() {
   const credit = await api('/credit/me', { token: ctoken });
   check(credit.status === 'ACTIVE', 'credit account activated by owner');
   check(Number(credit.balance) === 10000, `ledger balance tracked (${credit.balance})`);
+  const ownerView = await api(`/credit/${me.id}`, { token: owner.accessToken });
+  check(Number(ownerView.balance) === 10000, 'owner can view customer credit');
 
   console.log('13. Exchange portal: submit → owner approves');
   const ex = await api('/exchange', {

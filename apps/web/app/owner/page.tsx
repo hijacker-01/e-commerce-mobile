@@ -71,6 +71,14 @@ export default function OwnerPage() {
   return (
     <main>
       <h1>Owner dashboard</h1>
+      <div className="row" style={{ marginBottom: 8 }}>
+        <a className="btn" href="/owner/stockists">
+          Stockists & challans
+        </a>
+        <a className="btn secondary" href="/owner/credit">
+          Customer credit
+        </a>
+      </div>
       {msg && <p className="muted">{msg}</p>}
 
       {stats && (
