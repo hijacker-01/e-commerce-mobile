@@ -60,7 +60,7 @@ npm run test:smoke --workspace apps/backend
 Drives: owner login → catalog → register customer → cart → delivery-slot order →
 owner approval (with stock decrement) → GST invoice + warranty card → coupon apply
 → RBAC denial → notifications → analytics → credit → exchange → stockist
-challan/GRN. 30 assertions.
+challan/GRN + invoice PDF. 31 assertions.
 
 Chat-bargaining WebSocket test (auth → message → offer/accept → bad-token reject):
 ```bash
@@ -91,6 +91,8 @@ npm run mobile                # Expo  -> scan QR / press a (Android) / i (iOS)
 | POST | `/api/invoices` | OWNER / EMPLOYEE+`invoice.create` |
 | GET | `/api/invoices/gst-report` | OWNER / EMPLOYEE |
 | GET | `/api/invoices/:id` | authed |
+| GET | `/api/invoices/:id/pdf` | authed (GST invoice PDF) |
+| GET | `/api/invoices/:id/warranty.pdf` | authed (warranty card PDF) |
 | POST | `/api/ai/compare` | public (AI device comparison) |
 | POST | `/api/ai/recommend` | public (AI device recommender) |
 | POST | `/api/ai/draft-listing` | OWNER / EMPLOYEE+`product.write` (spec auto-fill) |

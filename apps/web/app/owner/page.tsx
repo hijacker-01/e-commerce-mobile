@@ -11,11 +11,31 @@ interface Order {
   total: string;
 }
 interface Invoice {
+  id: string;
   number: string;
   cgst: string;
   sgst: string;
   igst: string;
   total: string;
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+// PDF endpoints are JWT-protected, so fetch as a blob (a plain <a> can't send
+// the auth header) and trigger a download.
+async function downloadPdf(path: string, filename: string) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/api${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) return;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 interface Summary {
   revenuePaid: string;
@@ -62,6 +82,12 @@ export default function OwnerPage() {
       const inv = await api.post<Invoice>('/invoices', { orderId: id, type: 'GST' });
       setMsg(
         `Invoice ${inv.number}: CGST ₹${inv.cgst} + SGST ₹${inv.sgst} + IGST ₹${inv.igst} = ₹${inv.total}`,
+      );
+      // Download the generated GST invoice + warranty card PDFs.
+      await downloadPdf(`/invoices/${inv.id}/pdf`, `${inv.number}.pdf`);
+      await downloadPdf(
+        `/invoices/${inv.id}/warranty.pdf`,
+        `${inv.number}-warranty.pdf`,
       );
     } catch (e) {
       setMsg((e as Error).message);

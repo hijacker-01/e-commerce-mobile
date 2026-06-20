@@ -97,6 +97,14 @@ async function main() {
     `intra-state CGST+SGST split (cgst=${invoice.cgst}, sgst=${invoice.sgst})`,
   );
   check(invoice.warrantyCard, 'warranty card created');
+  const pdfRes = await fetch(`${BASE}/invoices/${invoice.id}/pdf`, {
+    headers: { Authorization: `Bearer ${owner.accessToken}` },
+  });
+  const pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
+  check(
+    pdfRes.ok && pdfBuf.subarray(0, 4).toString('latin1') === '%PDF',
+    `GST invoice PDF generated (${pdfBuf.length} bytes)`,
+  );
 
   console.log('8. Coupon: owner creates, customer applies');
   const code = `SAVE${Date.now().toString().slice(-5)}`;
