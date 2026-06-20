@@ -15,6 +15,7 @@ interface Order {
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [points, setPoints] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,12 +24,21 @@ export default function OrdersPage() {
       return;
     }
     api.get<Order[]>('/orders').then(setOrders).catch(() => {});
+    api
+      .get<{ points: number }>('/loyalty/me')
+      .then((r) => setPoints(r.points))
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <main>
-      <h1>My orders</h1>
+      <div className="row">
+        <h1 style={{ flex: 1 }}>My orders</h1>
+        {points !== null && (
+          <span className="badge">★ {points} loyalty points</span>
+        )}
+      </div>
       {orders.length === 0 ? (
         <p className="muted">No orders yet.</p>
       ) : (

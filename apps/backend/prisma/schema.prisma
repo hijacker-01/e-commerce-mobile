@@ -113,6 +113,7 @@ model User {
   // Granular permission flags owner can toggle per employee, e.g.
   // ["product.write","order.approve","invoice.create","inventory.write"]
   permissions  String[] @default([])
+  loyaltyPoints Int     @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

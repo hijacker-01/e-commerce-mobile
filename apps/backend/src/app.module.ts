@@ -18,6 +18,7 @@ import { DirectoryModule } from './directory/directory.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { StockistsModule } from './stockists/stockists.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { StockistsModule } from './stockists/stockists.module';
     NotificationsModule,
     AnalyticsModule,
     StockistsModule,
+    LoyaltyModule,
   ],
 })
 export class AppModule {}

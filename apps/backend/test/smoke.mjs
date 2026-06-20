@@ -85,6 +85,10 @@ async function main() {
     `stock decremented ${startStock} -> ${after.inventory.quantity}`,
   );
 
+  console.log('6b. Loyalty points awarded on approval');
+  const loyalty = await api('/loyalty/me', { token: ctoken });
+  check(loyalty.points > 0, `loyalty points earned (${loyalty.points})`);
+
   console.log('7. Owner generates GST invoice + warranty card');
   const invoice = await api('/invoices', {
     method: 'POST',

@@ -106,6 +106,14 @@ export class OrdersService {
             data: { quantity: { decrement: item.quantity } },
           });
         }
+        // Award loyalty points: 1 point per ₹100 of order total.
+        const points = Math.floor(Number(order.total) / 100);
+        if (points > 0) {
+          await tx.user.update({
+            where: { id: order.customerId },
+            data: { loyaltyPoints: { increment: points } },
+          });
+        }
       }
 
       return tx.order.update({
