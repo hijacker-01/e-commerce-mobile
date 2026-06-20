@@ -11,6 +11,7 @@ interface Product {
   title: string;
   description?: string;
   price: string;
+  media?: string[];
   specs: Record<string, unknown>;
   videoLinks: string[];
   inventory?: { quantity: number } | null;
@@ -99,36 +100,110 @@ export default function ProductPage({
 
   if (!product) return <p className="muted">Loading…</p>;
 
+  const inStock = !!product.inventory && product.inventory.quantity > 0;
+
   return (
     <main>
-      <h1>{product.title}</h1>
-      <div className="muted">
-        {product.brand} {product.model}
-      </div>
-      <div className="price" style={{ fontSize: 22 }}>
-        ₹{product.price}
-      </div>
-      {product.description && <p>{product.description}</p>}
-
-      {product.shop && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <strong>📍 Shop & pickup</strong>
-          <div style={{ marginTop: 4 }}>{product.shop.name}</div>
-          {product.shop.address && (
-            <div className="muted">Area / location: {product.shop.address}</div>
-          )}
-          {product.shop.hours && (
-            <div className="muted">Hours: {product.shop.hours}</div>
-          )}
-          {product.shop.phone && (
-            <a href={`tel:${product.shop.phone}`} className="muted">
-              📞 {product.shop.phone}
-            </a>
+      <div className="detail-grid">
+        {/* Gallery */}
+        <div className="gallery">
+          {product.media?.[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.media[0]}
+              alt={product.title}
+              style={{ maxWidth: '85%', maxHeight: '85%', objectFit: 'contain' }}
+            />
+          ) : (
+            '📱'
           )}
         </div>
-      )}
 
-      <div className="card" style={{ marginTop: 16 }}>
+        {/* Buy box */}
+        <div className="buybox">
+          <div className="eyebrow">{product.brand}</div>
+          <h1 style={{ marginBottom: 4 }}>{product.title}</h1>
+          <div className="muted">{product.model}</div>
+          <div className="price" style={{ fontSize: 30, marginTop: 18 }}>
+            ₹{Number(product.price).toLocaleString('en-IN')}
+          </div>
+          <div
+            className={inStock ? 'stock-in' : 'stock-out'}
+            style={{ marginTop: 6, fontSize: 13 }}
+          >
+            {inStock
+              ? `● In stock · ${product.inventory!.quantity} available`
+              : '○ Out of stock'}
+          </div>
+
+          {product.description && (
+            <p style={{ marginTop: 16, lineHeight: 1.6 }}>
+              {product.description}
+            </p>
+          )}
+
+          <div className="row" style={{ marginTop: 22, flexWrap: 'wrap' }}>
+            <button
+              onClick={addToCart}
+              disabled={!inStock}
+              style={{ flex: 1, minWidth: 140 }}
+            >
+              Add to cart
+            </button>
+            <button className="secondary" onClick={bargain}>
+              💬 Bargain
+            </button>
+            <button className="secondary" onClick={saveToWishlist}>
+              ♥ Save
+            </button>
+          </div>
+          {note && (
+            <p className="muted" style={{ marginTop: 10 }}>
+              {note}
+            </p>
+          )}
+
+          <div className="divider" />
+
+          <strong style={{ fontSize: 14 }}>No-cost EMI</strong>
+          <div
+            className="row"
+            style={{ marginTop: 10, flexWrap: 'wrap', gap: 10 }}
+          >
+            {[3, 6, 9, 12].map((m) => (
+              <span key={m} className="emi-pill">
+                <span className="muted">{m} months</span>
+                <b>
+                  ₹
+                  {Math.round(Number(product.price) / m).toLocaleString('en-IN')}
+                  /mo
+                </b>
+              </span>
+            ))}
+          </div>
+
+          {product.shop && (
+            <>
+              <div className="divider" />
+              <strong style={{ fontSize: 14 }}>📍 Shop &amp; pickup</strong>
+              <div style={{ marginTop: 6 }}>{product.shop.name}</div>
+              {product.shop.address && (
+                <div className="muted">{product.shop.address}</div>
+              )}
+              {product.shop.hours && (
+                <div className="muted">Hours: {product.shop.hours}</div>
+              )}
+              {product.shop.phone && (
+                <a href={`tel:${product.shop.phone}`} className="muted">
+                  📞 {product.shop.phone}
+                </a>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 36 }}>
         <strong>Specifications</strong>
         <table style={{ marginTop: 8 }}>
           <tbody>
@@ -142,33 +217,7 @@ export default function ProductPage({
         </table>
       </div>
 
-      <div className="row" style={{ marginTop: 16 }}>
-        <button onClick={addToCart}>Add to cart</button>
-        <button className="secondary" onClick={bargain}>
-          💬 Bargain
-        </button>
-        <button className="secondary" onClick={saveToWishlist}>
-          ♥ Save
-        </button>
-      </div>
-
-      <div className="card" style={{ marginTop: 16 }}>
-        <strong>No-cost EMI</strong>
-        <div className="row" style={{ marginTop: 8, flexWrap: 'wrap' }}>
-          {[3, 6, 9, 12].map((m) => (
-            <span key={m} className="badge" style={{ fontSize: 13 }}>
-              {m} mo · ₹{Math.round(Number(product.price) / m).toLocaleString('en-IN')}/mo
-            </span>
-          ))}
-        </div>
-      </div>
-      {note && (
-        <p className="muted" style={{ marginTop: 8 }}>
-          {note}
-        </p>
-      )}
-
-      <h2 style={{ marginTop: 28 }}>Reviews</h2>
+      <h2 style={{ marginTop: 36 }}>Reviews</h2>
       <button className="secondary" onClick={loadSummary}>
         ✨ AI summary
       </button>

@@ -41,7 +41,7 @@ export default function Nav() {
   return (
     <nav className="nav">
       <Link href="/" className="brand">
-        ⚡ Electronics Store
+        SAMSUNG<span style={{ color: 'var(--accent)' }}>·</span>Store
       </Link>
       <Link href="/">Shop</Link>
       <Link href="/services">Services</Link>

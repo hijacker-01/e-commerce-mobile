@@ -10,7 +10,25 @@ interface Product {
   model: string;
   title: string;
   price: string;
+  media?: string[];
   inventory?: { quantity: number } | null;
+}
+
+function Thumb({ src, alt }: { src?: string; alt: string }) {
+  return (
+    <div className="product-thumb">
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={alt}
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
+      ) : (
+        '📱'
+      )}
+    </div>
+  );
 }
 interface LobbyItem {
   id: string;
@@ -72,21 +90,40 @@ export default function Home() {
 
   return (
     <main>
-      {offers.length > 0 && (
-        <div
-          className="card"
-          style={{ borderColor: 'var(--accent)', marginBottom: 16 }}
-        >
-          🎉 <strong>Live offers:</strong>{' '}
-          {offers.map((o) => o.title).join(' · ')}
+      {/* Hero */}
+      <section className="hero">
+        <h1>The next era of smart electronics.</h1>
+        <p>
+          Discover flagship devices, AI-verified authenticity, and instant
+          bargaining — all in one premium marketplace.
+        </p>
+        <div className="hero-cta">
+          <a href="#shop" className="btn btn-light">
+            Shop now
+          </a>
+          <Link href="/services" className="btn btn-ghost-light">
+            Explore services
+          </Link>
         </div>
-      )}
+        {offers.length > 0 && (
+          <div style={{ marginTop: 28 }}>
+            <span className="chip" style={{ background: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }}>
+              🎉 Live offers · {offers.map((o) => o.title).join(' · ')}
+            </span>
+          </div>
+        )}
+      </section>
+
       {lobby.length > 0 && (
-        <section style={{ marginBottom: 28 }}>
-          <h2>✨ Owner&apos;s picks</h2>
+        <section className="section">
+          <div className="section-head">
+            <h2>Owner&apos;s picks</h2>
+            <span className="muted">Hand-selected this week</span>
+          </div>
           <div className="grid">
             {lobby.map((l) => (
               <Link key={l.id} href={`/product/${l.product.id}`} className="card">
+                <Thumb src={l.product.media?.[0]} alt={l.product.title} />
                 <strong>{l.product.title}</strong>
                 <div className="muted">
                   {l.product.brand} {l.product.model}
@@ -97,48 +134,61 @@ export default function Home() {
           </div>
         </section>
       )}
-      <h1>Shop electronics</h1>
-      <div className="row" style={{ margin: '12px 0 20px' }}>
-        <input
-          placeholder="Search devices…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <input
-          placeholder="Brand"
-          value={brand}
-          onChange={(e) => setBrand(e.target.value)}
-          style={{ maxWidth: 160 }}
-        />
-        <button onClick={load}>Filter</button>
-      </div>
-      {note && <p className="muted">{note}</p>}
-      {error && <p className="error">{error}</p>}
-      <div className="grid">
-        {products.map((p) => (
-          <div key={p.id} className="card">
-            <Link href={`/product/${p.id}`}>
-              <strong>{p.title}</strong>
-              <div className="muted">
-                {p.brand} {p.model}
+
+      <section className="section" id="shop">
+        <div className="section-head">
+          <h2>Shop electronics</h2>
+        </div>
+        <div className="row" style={{ margin: '0 0 24px' }}>
+          <input
+            placeholder="Search devices…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <input
+            placeholder="Brand"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            style={{ maxWidth: 180 }}
+          />
+          <button onClick={load}>Filter</button>
+        </div>
+        {note && <p className="muted">{note}</p>}
+        {error && <p className="error">{error}</p>}
+        <div className="grid">
+          {products.map((p) => {
+            const inStock = !!p.inventory && p.inventory.quantity > 0;
+            return (
+              <div key={p.id} className="card">
+                <Link href={`/product/${p.id}`}>
+                  <Thumb src={p.media?.[0]} alt={p.title} />
+                  <strong>{p.title}</strong>
+                  <div className="muted">
+                    {p.brand} {p.model}
+                  </div>
+                </Link>
+                <div className="price">₹{p.price}</div>
+                <div
+                  className={inStock ? 'stock-in' : 'stock-out'}
+                  style={{ marginTop: 4, fontSize: 13 }}
+                >
+                  {inStock ? `● ${p.inventory!.quantity} in stock` : '○ Out of stock'}
+                </div>
+                <button
+                  style={{ marginTop: 14, width: '100%' }}
+                  onClick={() => addToCart(p.id)}
+                  disabled={!inStock}
+                >
+                  Add to cart
+                </button>
               </div>
-            </Link>
-            <div className="price">₹{p.price}</div>
-            <div className="muted" style={{ marginTop: 4 }}>
-              {p.inventory && p.inventory.quantity > 0
-                ? `${p.inventory.quantity} in stock`
-                : 'Out of stock'}
-            </div>
-            <button
-              style={{ marginTop: 10, width: '100%' }}
-              onClick={() => addToCart(p.id)}
-            >
-              Add to cart
-            </button>
-          </div>
-        ))}
-        {!error && products.length === 0 && <p className="muted">No products.</p>}
-      </div>
+            );
+          })}
+          {!error && products.length === 0 && (
+            <p className="muted">No products.</p>
+          )}
+        </div>
+      </section>
     </main>
   );
 }

@@ -54,36 +54,59 @@ export default function CheckoutPage() {
   if (!cart) return <p className="muted">Loading…</p>;
 
   return (
-    <main style={{ maxWidth: 480 }}>
+    <main>
       <h1>Checkout</h1>
-      <p className="muted">Subtotal: ₹{cart.subtotal} (GST added at approval)</p>
-      <label>Delivery address</label>
-      <textarea value={address} onChange={(e) => setAddress(e.target.value)} />
-      <label>Preferred delivery slot</label>
-      <input
-        type="datetime-local"
-        value={slot}
-        onChange={(e) => setSlot(e.target.value)}
-      />
-      <label>Payment method</label>
-      <select value={method} onChange={(e) => setMethod(e.target.value)}>
-        <option value="UPI">UPI</option>
-        <option value="ONLINE">Online</option>
-        <option value="COD">Cash on delivery</option>
-      </select>
-      <button
-        className="success"
-        style={{ marginTop: 16 }}
-        onClick={placeOrder}
-        disabled={cart.items.length === 0}
-      >
-        Place order
-      </button>
-      {msg && (
-        <p className="muted" style={{ marginTop: 10 }}>
-          {msg}
-        </p>
-      )}
+      <div className="cart-grid" style={{ marginTop: 8 }}>
+        <div className="card">
+          <label>Delivery address</label>
+          <textarea
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            rows={3}
+          />
+          <label>Preferred delivery slot</label>
+          <input
+            type="datetime-local"
+            value={slot}
+            onChange={(e) => setSlot(e.target.value)}
+          />
+          <label>Payment method</label>
+          <select value={method} onChange={(e) => setMethod(e.target.value)}>
+            <option value="UPI">UPI</option>
+            <option value="ONLINE">Online</option>
+            <option value="COD">Cash on delivery</option>
+          </select>
+        </div>
+
+        <div className="summary">
+          <h3 style={{ marginTop: 0 }}>Order summary</h3>
+          <div className="summary-row">
+            <span>Subtotal</span>
+            <span>₹{cart.subtotal}</span>
+          </div>
+          <div className="summary-row">
+            <span>GST</span>
+            <span>Added at approval</span>
+          </div>
+          <div className="summary-total">
+            <span>Total</span>
+            <span>₹{cart.subtotal}</span>
+          </div>
+          <button
+            className="success"
+            style={{ width: '100%', marginTop: 18 }}
+            onClick={placeOrder}
+            disabled={cart.items.length === 0}
+          >
+            Place order
+          </button>
+          {msg && (
+            <p className="muted" style={{ marginTop: 12 }}>
+              {msg}
+            </p>
+          )}
+        </div>
+      </div>
     </main>
   );
 }

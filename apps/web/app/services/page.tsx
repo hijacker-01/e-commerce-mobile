@@ -34,9 +34,10 @@ export default function ServicesPage() {
 
   return (
     <main>
+      <div className="eyebrow">Support</div>
       <h1>Service centers</h1>
-      <p className="muted">Find authorized service & repair centers near you.</p>
-      <div className="row" style={{ margin: '12px 0 20px' }}>
+      <p className="muted">Find authorized service &amp; repair centers near you.</p>
+      <div className="row" style={{ margin: '16px 0 24px' }}>
         <input
           placeholder="Brand (e.g. Samsung)"
           value={brand}
@@ -64,7 +65,13 @@ export default function ServicesPage() {
             )}
           </div>
         ))}
-        {centers.length === 0 && <p className="muted">No service centers found.</p>}
+        {centers.length === 0 && (
+          <div className="empty-state">
+            <div className="emoji">🔧</div>
+            <h3 style={{ marginTop: 12 }}>No service centers found</h3>
+            <p className="muted">Try a different brand or city.</p>
+          </div>
+        )}
       </div>
     </main>
   );

@@ -13,6 +13,14 @@ interface Order {
   createdAt: string;
 }
 
+function statusColor(status: string): string {
+  const s = status.toUpperCase();
+  if (['DELIVERED', 'APPROVED', 'COMPLETED'].includes(s)) return '#15803d';
+  if (['CANCELLED', 'REJECTED', 'RETURNED'].includes(s)) return '#dc2626';
+  if (['PENDING', 'AWAITING'].includes(s)) return '#b45309';
+  return '#1428a0';
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [points, setPoints] = useState<number | null>(null);
@@ -48,43 +56,70 @@ export default function OrdersPage() {
       <div className="row">
         <h1 style={{ flex: 1 }}>My orders</h1>
         {points !== null && (
-          <span className="badge">★ {points} loyalty points</span>
+          <span
+            className="chip"
+            style={{
+              background: 'linear-gradient(135deg,#fff7e6,#ffeccc)',
+              borderColor: '#f3d28a',
+              color: '#92600a',
+              fontWeight: 700,
+            }}
+          >
+            ★ {points} loyalty points
+          </span>
         )}
       </div>
       {note && <p className="muted">{note}</p>}
       {orders.length === 0 ? (
-        <p className="muted">No orders yet.</p>
+        <div className="empty-state">
+          <div className="emoji">📦</div>
+          <h3 style={{ marginTop: 12 }}>No orders yet</h3>
+          <p className="muted">Your placed orders will show up here.</p>
+          <button style={{ marginTop: 16 }} onClick={() => router.push('/')}>
+            Start shopping
+          </button>
+        </div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Order</th>
-              <th>Status</th>
-              <th>Payment</th>
-              <th>Total</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr key={o.id}>
-                <td>{o.number}</td>
-                <td>
-                  <span className="badge">{o.status}</span>
-                </td>
-                <td>{o.paymentStatus}</td>
-                <td>₹{o.total}</td>
-                <td>
-                  {['APPROVED', 'DELIVERED'].includes(o.status) && (
-                    <button className="secondary" onClick={() => requestReturn(o.id)}>
-                      Return
-                    </button>
-                  )}
-                </td>
+        <div className="card" style={{ padding: 8, marginTop: 12 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Status</th>
+                <th>Payment</th>
+                <th>Total</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {orders.map((o) => (
+                <tr key={o.id}>
+                  <td>{o.number}</td>
+                  <td>
+                    <span
+                      className="badge"
+                      style={{ background: statusColor(o.status) }}
+                    >
+                      {o.status}
+                    </span>
+                  </td>
+                  <td>{o.paymentStatus}</td>
+                  <td>₹{o.total}</td>
+                  <td>
+                    {['APPROVED', 'DELIVERED'].includes(o.status) && (
+                      <button
+                        className="secondary"
+                        onClick={() => requestReturn(o.id)}
+                      >
+                        Return
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   );
