@@ -24,10 +24,20 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      meilisearch:
+        image: getmeili/meilisearch:v1.7
+        env:
+          MEILI_MASTER_KEY: ci_meili_key
+          MEILI_ENV: development
+        ports:
+          - 7700:7700
+
     env:
       DATABASE_URL: postgresql://ecom:ecom_pass@localhost:5432/ecommerce?schema=public
       JWT_ACCESS_SECRET: ci_access_secret
       JWT_REFRESH_SECRET: ci_refresh_secret
+      MEILI_HOST: http://localhost:7700
+      MEILI_MASTER_KEY: ci_meili_key
       PORT: '4000'
 
     steps:

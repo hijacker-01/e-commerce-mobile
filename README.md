@@ -60,7 +60,7 @@ npm run test:smoke --workspace apps/backend
 Drives: owner login → catalog → register customer → cart → delivery-slot order →
 owner approval (with stock decrement) → GST invoice + warranty card → coupon apply
 → RBAC denial → notifications → analytics → credit → exchange → stockist
-challan/GRN + invoice PDF + loyalty + wishlist + returns + health. 37 assertions.
+challan/GRN + invoice PDF + loyalty + wishlist + returns + health + search. 39 assertions.
 
 Chat-bargaining WebSocket test (auth → message → offer/accept → bad-token reject):
 ```bash
@@ -121,6 +121,8 @@ npm run mobile                # Expo  -> scan QR / press a (Android) / i (iOS)
 | GET/POST/DELETE | `/api/wishlist[/:productId]` | CUSTOMER |
 | POST/GET | `/api/returns` (+`/me`, `/:id`) | CUSTOMER request; OWNER/EMPLOYEE manage |
 | GET | `/api/health` | public (DB readiness) |
+| GET | `/api/search` | public (Meilisearch faceted, DB fallback) |
+| POST | `/api/search/reindex` | OWNER / EMPLOYEE |
 | GET | `/api/analytics/summary` | OWNER / EMPLOYEE (sales/inventory/GST) |
 | POST/GET | `/api/stockists` | OWNER / EMPLOYEE (registry) |
 | POST | `/api/stockists/challans` | OWNER / EMPLOYEE+`challan.create` |

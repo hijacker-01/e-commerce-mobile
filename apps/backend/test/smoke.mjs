@@ -252,6 +252,18 @@ async function main() {
   });
   check(decided.status === 'APPROVED', 'owner approved return');
 
+  console.log('18. Search: reindex → query finds the product');
+  const reindex = await api('/search/reindex', {
+    method: 'POST',
+    token: owner.accessToken,
+  });
+  check(reindex.indexed >= 1, `search reindexed ${reindex.indexed} (${reindex.engine})`);
+  const found = await api(`/search?brand=${encodeURIComponent(product.brand)}`);
+  check(
+    found.hits.some((h) => h.id === product.id),
+    `search returned the product via ${found.engine}`,
+  );
+
   console.log(`\nALL ${passed} CHECKS PASSED ✅`);
 }
 

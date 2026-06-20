@@ -22,6 +22,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { ReturnsModule } from './returns/returns.module';
 import { HealthModule } from './health/health.module';
+import { SearchModule } from './search/search.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { HealthModule } from './health/health.module';
     WishlistModule,
     ReturnsModule,
     HealthModule,
+    SearchModule,
   ],
 })
 export class AppModule {}

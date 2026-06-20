@@ -31,7 +31,15 @@ export default function Home() {
     if (q) params.set('q', q);
     if (brand) params.set('brand', brand);
     try {
-      setProducts(await api.get<Product[]>(`/products?${params.toString()}`));
+      if (q || brand) {
+        // Faceted search (Meilisearch, with a DB fallback server-side).
+        const res = await api.get<{ hits: Product[] }>(
+          `/search?${params.toString()}`,
+        );
+        setProducts(res.hits);
+      } else {
+        setProducts(await api.get<Product[]>('/products'));
+      }
     } catch {
       setError('Backend not reachable. Start it with `npm run backend`.');
     }

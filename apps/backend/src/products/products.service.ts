@@ -1,14 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SearchService } from '../search/search.service';
 import { CreateProductDto, ProductQueryDto } from './dto/product.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly search: SearchService,
+  ) {}
 
-  create(dto: CreateProductDto) {
-    return this.prisma.product.create({
+  async create(dto: CreateProductDto) {
+    const product = await this.prisma.product.create({
       data: {
         shopId: dto.shopId,
         categoryId: dto.categoryId,
@@ -26,6 +30,9 @@ export class ProductsService {
         videoLinks: dto.videoLinks ?? [],
       },
     });
+    // Best-effort index into the search engine.
+    await this.search.indexProduct(product);
+    return product;
   }
 
   async findOne(id: string) {
