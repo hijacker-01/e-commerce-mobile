@@ -12,9 +12,14 @@ interface Product {
   price: string;
   inventory?: { quantity: number } | null;
 }
+interface LobbyItem {
+  id: string;
+  product: Product;
+}
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [lobby, setLobby] = useState<LobbyItem[]>([]);
   const [q, setQ] = useState('');
   const [brand, setBrand] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +39,7 @@ export default function Home() {
 
   useEffect(() => {
     load();
+    api.get<LobbyItem[]>('/lobby').then(setLobby).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -52,6 +58,22 @@ export default function Home() {
 
   return (
     <main>
+      {lobby.length > 0 && (
+        <section style={{ marginBottom: 28 }}>
+          <h2>✨ Owner&apos;s picks</h2>
+          <div className="grid">
+            {lobby.map((l) => (
+              <Link key={l.id} href={`/product/${l.product.id}`} className="card">
+                <strong>{l.product.title}</strong>
+                <div className="muted">
+                  {l.product.brand} {l.product.model}
+                </div>
+                <div className="price">₹{l.product.price}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
       <h1>Shop electronics</h1>
       <div className="row" style={{ margin: '12px 0 20px' }}>
         <input

@@ -44,6 +44,7 @@ export default function Nav() {
         ⚡ Electronics Store
       </Link>
       <Link href="/">Shop</Link>
+      <Link href="/services">Services</Link>
       {authed && <Link href="/cart">Cart</Link>}
       {authed && <Link href="/orders">My Orders</Link>}
       {authed && <Link href="/chat">Bargain</Link>}

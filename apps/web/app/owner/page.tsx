@@ -104,6 +104,9 @@ export default function OwnerPage() {
         <a className="btn secondary" href="/owner/credit">
           Customer credit
         </a>
+        <a className="btn secondary" href="/owner/storefront">
+          Storefront (lobby + services)
+        </a>
       </div>
       {msg && <p className="muted">{msg}</p>}
 
