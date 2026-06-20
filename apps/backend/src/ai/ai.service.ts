@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -22,10 +22,15 @@ interface DeviceContext {
   rating?: number | null;
 }
 
+/**
+ * AI engine backed by Groq's OpenAI-compatible API.
+ * Structured results use JSON mode; everything degrades to 503 when
+ * GROQ_API_KEY is unset.
+ */
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  private readonly client: Anthropic | null;
+  private readonly client: OpenAI | null;
   private readonly reasoningModel: string;
   private readonly fastModel: string;
 
@@ -33,13 +38,16 @@ export class AiService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
-    const apiKey = this.config.get<string>('ANTHROPIC_API_KEY');
-    // Degrade gracefully when no key is configured (e.g. local dev).
-    this.client = apiKey ? new Anthropic({ apiKey }) : null;
+    const apiKey = this.config.get<string>('GROQ_API_KEY');
+    const baseURL =
+      this.config.get<string>('GROQ_BASE_URL') ??
+      'https://api.groq.com/openai/v1';
+    this.client = apiKey ? new OpenAI({ apiKey, baseURL }) : null;
     this.reasoningModel =
-      this.config.get<string>('AI_MODEL_REASONING') ?? 'claude-opus-4-8';
+      this.config.get<string>('GROQ_MODEL_REASONING') ??
+      'llama-3.3-70b-versatile';
     this.fastModel =
-      this.config.get<string>('AI_MODEL_FAST') ?? 'claude-haiku-4-5';
+      this.config.get<string>('GROQ_MODEL_FAST') ?? 'llama-3.1-8b-instant';
   }
 
   /** Smart, grounded comparison of 2–4 devices. */
@@ -48,46 +56,14 @@ export class AiService {
     if (devices.length < 2) {
       throw new BadRequestException('Need at least 2 valid products to compare');
     }
-
-    const schema = {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        summary: { type: 'string' },
-        winnerByCategory: {
-          type: 'object',
-          additionalProperties: false,
-          properties: {
-            performance: { type: 'string' },
-            battery: { type: 'string' },
-            audio: { type: 'string' },
-            value: { type: 'string' },
-          },
-          required: ['performance', 'battery', 'audio', 'value'],
-        },
-        bestFor: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              useCase: { type: 'string' },
-              productId: { type: 'string' },
-            },
-            required: ['useCase', 'productId'],
-          },
-        },
-      },
-      required: ['summary', 'winnerByCategory', 'bestFor'],
-    };
-
     const prompt =
       'Compare these electronics devices for an Indian buyer. Ground every ' +
       'claim in the provided specs/benchmarks/real-world data — do not invent ' +
-      'numbers. Devices:\n' +
-      JSON.stringify(devices, null, 2);
-
-    return this.callJson(prompt, schema, 'device comparison');
+      'numbers. Respond with JSON of shape: { "summary": string, ' +
+      '"winnerByCategory": { "performance": string, "battery": string, ' +
+      '"audio": string, "value": string }, "bestFor": [{ "useCase": string, ' +
+      '"productId": string }] }. Devices:\n' + JSON.stringify(devices, null, 2);
+    return this.chatJson(prompt, 'device comparison', this.reasoningModel);
   }
 
   /** AI "perfect device recommender" over the live catalog. */
@@ -98,99 +74,40 @@ export class AiService {
     if (candidates.length === 0) {
       throw new BadRequestException('No products available to recommend from');
     }
-
-    const schema = {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        recommendations: {
-          type: 'array',
-          items: {
-            type: 'object',
-            additionalProperties: false,
-            properties: {
-              productId: { type: 'string' },
-              reason: { type: 'string' },
-              confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
-            },
-            required: ['productId', 'reason', 'confidence'],
-          },
-        },
-      },
-      required: ['recommendations'],
-    };
-
     const prompt =
       `Customer need: "${query}".\n` +
-      'Rank the best-matching devices from this catalog (most suitable first). ' +
-      'Justify each pick against the stated need and ground claims in the data. ' +
-      'Only recommend from the provided list.\nCatalog:\n' +
+      'Rank the best-matching devices from this catalog (most suitable first) ' +
+      'and only recommend from the provided list. Respond with JSON of shape: ' +
+      '{ "recommendations": [{ "productId": string, "reason": string, ' +
+      '"confidence": "high"|"medium"|"low" }] }.\nCatalog:\n' +
       JSON.stringify(candidates, null, 2);
-
-    return this.callJson(prompt, schema, 'device recommendation');
+    return this.chatJson(prompt, 'device recommendation', this.reasoningModel);
   }
 
-  /**
-   * Low-effort listing: research a device by brand+model (web search) and
-   * return a draft the owner reviews before saving. Uses the cheap model.
-   */
+  /** Low-effort listing: draft a product from brand+model (model knowledge). */
   async draftListing(brand: string, model: string, categoryName?: string) {
-    if (!this.client) {
-      throw new ServiceUnavailableException(
-        'AI engine not configured (set ANTHROPIC_API_KEY)',
-      );
-    }
     const prompt =
-      `Research the electronics device "${brand} ${model}"` +
+      `Draft a product listing for the electronics device "${brand} ${model}"` +
       (categoryName ? ` (category: ${categoryName})` : '') +
-      ' using web search, then draft a product listing for an Indian store.\n' +
-      'Output ONLY a JSON object (no prose, no code fences) with keys: ' +
-      'title (string), description (string, 2-3 sentences), specs (object with ' +
-      'processor, ram, storage, batteryMah, audioCodec, anc, btVersion, ' +
-      'warrantyMonths where applicable), hsnCode (string), ' +
-      'suggestedPriceMinInr (number), suggestedPriceMaxInr (number). ' +
-      'Ground specs in search results; omit unknown fields rather than guessing.';
-
-    try {
-      const response = await this.client.messages.create({
-        model: this.fastModel,
-        max_tokens: 4000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }],
-        messages: [{ role: 'user', content: prompt }],
-      });
-      const text = response.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b as { text: string }).text)
-        .join('\n');
-      return { draft: this.parseJson(text), aiGenerated: true };
-    } catch (err) {
-      this.logger.error('AI draft listing failed', err as Error);
-      throw new ServiceUnavailableException('AI draft listing failed');
-    }
+      ' for an Indian store, using your knowledge of the device. ' +
+      'Respond with a JSON object with keys: title (string), description ' +
+      '(string, 2-3 sentences), specs (object with processor, ram, storage, ' +
+      'batteryMah, audioCodec, anc, btVersion, warrantyMonths where ' +
+      'applicable), hsnCode (string), suggestedPriceMinInr (number), ' +
+      'suggestedPriceMaxInr (number). Omit unknown fields rather than guessing.';
+    const draft = await this.chatJson(prompt, 'draft listing', this.fastModel);
+    return { draft, aiGenerated: true };
   }
 
   /** Summarize a product's reviews into pros/cons + sentiment. */
   async summarizeReviews(reviews: { rating: number; text: string | null }[]) {
     if (reviews.length === 0) return null;
-    const schema = {
-      type: 'object',
-      additionalProperties: false,
-      properties: {
-        summary: { type: 'string' },
-        pros: { type: 'array', items: { type: 'string' } },
-        cons: { type: 'array', items: { type: 'string' } },
-        sentiment: { type: 'string', enum: ['positive', 'neutral', 'negative'] },
-      },
-      required: ['summary', 'pros', 'cons', 'sentiment'],
-    };
     const prompt =
-      'Summarize these product reviews into a one-line summary, pros, cons, ' +
-      'and overall sentiment. Reviews:\n' +
+      'Summarize these product reviews. Respond with JSON of shape: ' +
+      '{ "summary": string, "pros": string[], "cons": string[], ' +
+      '"sentiment": "positive"|"neutral"|"negative" }. Reviews:\n' +
       JSON.stringify(reviews);
-    return this.callJson(prompt, schema, 'review summary', {
-      model: this.fastModel,
-      useThinking: false,
-    });
+    return this.chatJson(prompt, 'review summary', this.fastModel);
   }
 
   /** Estimate a fair INR buyback/exchange value for a used device. */
@@ -202,41 +119,27 @@ export class AiService {
     if (!this.client) return null;
     const prompt =
       `Estimate a fair exchange/buyback price in INR for a used "${brand} ` +
-      `${model}" in "${condition}" condition in India. Use web search for ` +
-      'current resale prices. Output ONLY JSON: ' +
+      `${model}" in "${condition}" condition in India, using your knowledge ` +
+      'of resale prices. Respond with JSON: ' +
       '{ "aiValueInr": number, "rationale": string }.';
     try {
-      const response = await this.client.messages.create({
-        model: this.fastModel,
-        max_tokens: 2000,
-        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
-        messages: [{ role: 'user', content: prompt }],
-      });
-      const text = response.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b as { text: string }).text)
-        .join('\n');
-      const parsed = this.parseJson(text) as {
-        aiValueInr?: number;
-        rationale?: string;
-      } | null;
+      const parsed = (await this.chatJson(
+        prompt,
+        'exchange valuation',
+        this.fastModel,
+      )) as { aiValueInr?: number; rationale?: string } | null;
       return {
-        aiValueInr: typeof parsed?.aiValueInr === 'number' ? parsed.aiValueInr : null,
+        aiValueInr:
+          typeof parsed?.aiValueInr === 'number' ? parsed.aiValueInr : null,
         rationale: parsed?.rationale ?? '',
       };
-    } catch (err) {
-      this.logger.error('AI exchange valuation failed', err as Error);
+    } catch {
       return null;
     }
   }
 
   /** Customer support chatbot grounded in the user's recent orders. */
   async support(userId: string, question: string): Promise<{ answer: string }> {
-    if (!this.client) {
-      throw new ServiceUnavailableException(
-        'AI engine not configured (set ANTHROPIC_API_KEY)',
-      );
-    }
     const orders = await this.prisma.order.findMany({
       where: { customerId: userId },
       orderBy: { createdAt: 'desc' },
@@ -245,30 +148,15 @@ export class AiService {
     });
     const system =
       'You are a concise, friendly support agent for an Indian electronics ' +
-      'store. Answer using the customer order context when relevant; for ' +
-      'product fit questions give practical guidance. Keep replies short.';
-    try {
-      const response = await this.client.messages.create({
-        model: this.fastModel,
-        max_tokens: 1024,
-        system,
-        messages: [
-          {
-            role: 'user',
-            content:
-              `My recent orders: ${JSON.stringify(orders)}\n\nQuestion: ${question}`,
-          },
-        ],
-      });
-      const text = response.content
-        .filter((b) => b.type === 'text')
-        .map((b) => (b as { text: string }).text)
-        .join('\n');
-      return { answer: text };
-    } catch (err) {
-      this.logger.error('AI support failed', err as Error);
-      throw new ServiceUnavailableException('AI support failed');
-    }
+      'store. Use the order context when relevant; for product-fit questions ' +
+      'give practical guidance. Keep replies short.';
+    const answer = await this.chatText(
+      `My recent orders: ${JSON.stringify(orders)}\n\nQuestion: ${question}`,
+      'support',
+      this.fastModel,
+      system,
+    );
+    return { answer };
   }
 
   // --- helpers -------------------------------------------------------------
@@ -307,42 +195,57 @@ export class AiService {
     });
   }
 
-  private async callJson(
-    prompt: string,
-    schema: Record<string, unknown>,
-    label: string,
-    opts: { model?: string; useThinking?: boolean } = {},
-  ): Promise<unknown> {
+  private ensureClient(): OpenAI {
     if (!this.client) {
       throw new ServiceUnavailableException(
-        'AI engine not configured (set ANTHROPIC_API_KEY)',
+        'AI engine not configured (set GROQ_API_KEY)',
       );
     }
-    const useThinking = opts.useThinking ?? true;
+    return this.client;
+  }
+
+  /** Chat completion returning parsed JSON (Groq JSON mode). */
+  private async chatJson(
+    prompt: string,
+    label: string,
+    model: string,
+  ): Promise<unknown> {
+    const client = this.ensureClient();
     try {
-      const response = await this.client.messages.create({
-        model: opts.model ?? this.reasoningModel,
-        max_tokens: 16000,
-        // Adaptive thinking + effort are only sent for the reasoning model;
-        // the fast model takes neither.
-        ...(useThinking
-          ? {
-              thinking: { type: 'adaptive' as const },
-              output_config: {
-                effort: 'high' as const,
-                format: { type: 'json_schema' as const, schema },
-              },
-            }
-          : {
-              output_config: {
-                format: { type: 'json_schema' as const, schema },
-              },
-            }),
+      const res = await client.chat.completions.create({
+        model,
+        max_tokens: 4000,
+        response_format: { type: 'json_object' },
         messages: [{ role: 'user', content: prompt }],
       });
-      // output_config.format guarantees the first text block is valid JSON.
-      const text = response.content.find((b) => b.type === 'text');
-      return text ? JSON.parse((text as { text: string }).text) : null;
+      const content = res.choices[0]?.message?.content ?? '';
+      return this.parseJson(content);
+    } catch (err) {
+      this.logger.error(`AI ${label} failed`, err as Error);
+      throw new ServiceUnavailableException(`AI ${label} failed`);
+    }
+  }
+
+  /** Chat completion returning plain text. */
+  private async chatText(
+    prompt: string,
+    label: string,
+    model: string,
+    system?: string,
+  ): Promise<string> {
+    const client = this.ensureClient();
+    try {
+      const res = await client.chat.completions.create({
+        model,
+        max_tokens: 1024,
+        messages: [
+          ...(system
+            ? [{ role: 'system' as const, content: system }]
+            : []),
+          { role: 'user' as const, content: prompt },
+        ],
+      });
+      return res.choices[0]?.message?.content ?? '';
     } catch (err) {
       this.logger.error(`AI ${label} failed`, err as Error);
       throw new ServiceUnavailableException(`AI ${label} failed`);

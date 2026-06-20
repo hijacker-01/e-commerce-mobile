@@ -301,7 +301,7 @@ async function main() {
     });
     supportOk = typeof r.answer === 'string';
   } catch (e) {
-    supportOk = /503/.test(e.message); // graceful when ANTHROPIC_API_KEY unset
+    supportOk = /503/.test(e.message); // graceful when GROQ_API_KEY unset
   }
   check(supportOk, 'AI support replies or degrades gracefully');
 

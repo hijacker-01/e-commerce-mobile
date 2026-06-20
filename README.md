@@ -19,7 +19,7 @@ docker-compose.yml   Postgres(pgvector) + Redis + Meilisearch
 
 ## Stack
 React Native (Expo) · Next.js · NestJS · PostgreSQL + pgvector · Redis · Meilisearch ·
-Anthropic Claude (AI engine) · Razorpay/UPI (India) · GST-ready billing.
+Groq (AI engine, OpenAI-compatible) · Razorpay/UPI (India) · GST-ready billing.
 
 ## Roles (RBAC)
 `OWNER`, `EMPLOYEE`, `STOCKIST`, `CUSTOMER`. Owner can grant **granular permission
