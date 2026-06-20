@@ -38,7 +38,15 @@ export class ProductsService {
   async findOne(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: { inventory: true, category: true, reviews: true },
+      include: {
+        inventory: true,
+        category: true,
+        reviews: true,
+        // Shop area/location shown as plain text (no map).
+        shop: {
+          select: { name: true, address: true, hours: true, phone: true },
+        },
+      },
     });
     if (!product) throw new NotFoundException('Product not found');
     return product;

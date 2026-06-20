@@ -40,6 +40,8 @@ async function main() {
   const product = products[0];
   const startStock = product.inventory?.quantity ?? 0;
   check(startStock > 0, `seeded product in stock (${startStock})`);
+  const detail = await api(`/products/${product.id}`);
+  check(!!detail.shop?.address, `product shows shop location (${detail.shop?.address})`);
 
   console.log('3. Register a fresh customer');
   const phone = `9${Date.now().toString().slice(-9)}`;

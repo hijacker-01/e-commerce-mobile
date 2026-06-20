@@ -14,6 +14,12 @@ interface Product {
   specs: Record<string, unknown>;
   videoLinks: string[];
   inventory?: { quantity: number } | null;
+  shop?: {
+    name: string;
+    address?: string | null;
+    hours?: string | null;
+    phone?: string | null;
+  } | null;
 }
 interface Review {
   id: string;
@@ -103,6 +109,24 @@ export default function ProductPage({
         ₹{product.price}
       </div>
       {product.description && <p>{product.description}</p>}
+
+      {product.shop && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <strong>📍 Shop & pickup</strong>
+          <div style={{ marginTop: 4 }}>{product.shop.name}</div>
+          {product.shop.address && (
+            <div className="muted">Area / location: {product.shop.address}</div>
+          )}
+          {product.shop.hours && (
+            <div className="muted">Hours: {product.shop.hours}</div>
+          )}
+          {product.shop.phone && (
+            <a href={`tel:${product.shop.phone}`} className="muted">
+              📞 {product.shop.phone}
+            </a>
+          )}
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: 16 }}>
         <strong>Specifications</strong>
