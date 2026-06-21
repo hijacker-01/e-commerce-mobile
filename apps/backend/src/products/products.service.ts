@@ -132,6 +132,18 @@ export class ProductsService {
     });
   }
 
+  /** Staff inbox: all questions (optionally only unanswered) across products. */
+  listAllQuestions(unansweredOnly = false) {
+    return this.prisma.productQuestion.findMany({
+      where: unansweredOnly ? { answer: null } : {},
+      include: {
+        user: { select: { name: true } },
+        product: { select: { id: true, title: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   askQuestion(userId: string, productId: string, question: string) {
     return this.prisma.productQuestion.create({
       data: { userId, productId, question },

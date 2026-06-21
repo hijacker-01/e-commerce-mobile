@@ -332,15 +332,36 @@ async function main() {
     console.log(`Seeded ${accessoryCatalog.length} mobile accessories.`);
   }
 
-  // Variants — group flagship models and add storage siblings (idempotent).
-  await prisma.product.updateMany({
-    where: { model: 'Galaxy S24 Ultra', variantGroup: null },
-    data: { variantGroup: 's24ultra', variantLabel: '256GB' },
-  });
-  await prisma.product.updateMany({
-    where: { model: 'Galaxy A55', variantGroup: null },
-    data: { variantGroup: 'a55', variantLabel: '128GB' },
-  });
+  // Variants — group flagship models into storage × colour SKUs (idempotent).
+  // Relabel the base/existing rows (created by the catalog/earlier seed runs).
+  const relabels: { title: string; group: string; label: string }[] = [
+    {
+      title: 'Samsung Galaxy S24 Ultra 5G (12GB/256GB)',
+      group: 's24ultra',
+      label: '256GB · Titanium Black',
+    },
+    {
+      title: 'Samsung Galaxy S24 Ultra 5G (12GB/512GB)',
+      group: 's24ultra',
+      label: '512GB · Titanium Black',
+    },
+    {
+      title: 'Samsung Galaxy A55 5G (8GB/128GB)',
+      group: 'a55',
+      label: '128GB · Awesome Navy',
+    },
+    {
+      title: 'Samsung Galaxy A55 5G (8GB/256GB)',
+      group: 'a55',
+      label: '256GB · Awesome Navy',
+    },
+  ];
+  for (const r of relabels) {
+    await prisma.product.updateMany({
+      where: { title: r.title },
+      data: { variantGroup: r.group, variantLabel: r.label },
+    });
+  }
 
   const variantSiblings = [
     {
@@ -349,7 +370,7 @@ async function main() {
       brand: 'Samsung',
       model: 'Galaxy S24 Ultra',
       title: 'Samsung Galaxy S24 Ultra 5G (12GB/512GB)',
-      label: '512GB',
+      label: '512GB · Titanium Black',
       description:
         'Flagship Galaxy with titanium frame, 200MP camera and Galaxy AI.',
       specs: {
@@ -366,12 +387,34 @@ async function main() {
       quantity: 5,
     },
     {
+      group: 's24ultra',
+      categoryId: mobiles.id,
+      brand: 'Samsung',
+      model: 'Galaxy S24 Ultra',
+      title: 'Samsung Galaxy S24 Ultra 5G (12GB/256GB) — Titanium Gray',
+      label: '256GB · Titanium Gray',
+      description:
+        'Flagship Galaxy with titanium frame, 200MP camera and Galaxy AI.',
+      specs: {
+        processor: 'Snapdragon 8 Gen 3',
+        ram: '12GB',
+        storage: '256GB',
+        display: '6.8" QHD+ AMOLED 120Hz',
+        batteryMah: 5000,
+        warrantyMonths: 12,
+      },
+      price: 124999,
+      mrp: 134999,
+      media: [img('1511707171634-5f897ff02aa9')],
+      quantity: 7,
+    },
+    {
       group: 'a55',
       categoryId: mobiles.id,
       brand: 'Samsung',
       model: 'Galaxy A55',
       title: 'Samsung Galaxy A55 5G (8GB/256GB)',
-      label: '256GB',
+      label: '256GB · Awesome Navy',
       description: 'Mid-range 5G phone with a brilliant Super AMOLED display.',
       specs: {
         processor: 'Exynos 1480',
@@ -385,6 +428,27 @@ async function main() {
       mrp: 42999,
       media: [img('1511707171634-5f897ff02aa9')],
       quantity: 10,
+    },
+    {
+      group: 'a55',
+      categoryId: mobiles.id,
+      brand: 'Samsung',
+      model: 'Galaxy A55',
+      title: 'Samsung Galaxy A55 5G (8GB/128GB) — Awesome Lilac',
+      label: '128GB · Awesome Lilac',
+      description: 'Mid-range 5G phone with a brilliant Super AMOLED display.',
+      specs: {
+        processor: 'Exynos 1480',
+        ram: '8GB',
+        storage: '128GB',
+        batteryMah: 5000,
+        btVersion: '5.3',
+        warrantyMonths: 12,
+      },
+      price: 33999,
+      mrp: 39999,
+      media: [img('1610945265064-0e34e5519bbf')],
+      quantity: 12,
     },
   ];
   for (const v of variantSiblings) {

@@ -40,6 +40,12 @@ export class ProductsController {
     return this.products.listShops();
   }
 
+  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Get('meta/questions')
+  allQuestions(@Query('unanswered') unanswered?: string) {
+    return this.products.listAllQuestions(unanswered === 'true');
+  }
+
   @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {

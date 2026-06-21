@@ -117,6 +117,9 @@ export default function OwnerPage() {
         <Link className="btn secondary" href="/owner/returns">
           Returns
         </Link>
+        <Link className="btn secondary" href="/owner/questions">
+          Customer Q&amp;A
+        </Link>
         <Link className="btn secondary" href="/owner/audit">
           Audit log
         </Link>
