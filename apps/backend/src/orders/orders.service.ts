@@ -73,6 +73,26 @@ export class OrdersService {
     });
   }
 
+  /** Single order with product details, scoped to the requesting user. */
+  async findOne(id: string, user: AuthUser) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            product: { select: { id: true, title: true, media: true } },
+          },
+        },
+        invoice: true,
+      },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    if (user.role === Role.CUSTOMER && order.customerId !== user.id) {
+      throw new ForbiddenException('Not your order');
+    }
+    return order;
+  }
+
   /** Owner/employee approves or advances order status. */
   async updateStatus(orderId: string, status: OrderStatus, approver: AuthUser) {
     const order = await this.prisma.order.findUnique({

@@ -3,12 +3,21 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, getRole, getToken } from '../../../lib/api';
+import { toast } from '../../../lib/toast';
 
 interface ReturnReq {
   id: string;
   reason: string;
   status: string;
   order?: { number: string } | null;
+}
+
+function statusColor(status: string): string {
+  const s = status.toUpperCase();
+  if (['COMPLETED', 'APPROVED'].includes(s)) return '#15803d';
+  if (s === 'REJECTED') return '#dc2626';
+  if (s === 'REQUESTED') return '#b45309';
+  return '#1428a0';
 }
 
 export default function OwnerReturnsPage() {
@@ -30,8 +39,13 @@ export default function OwnerReturnsPage() {
   }, []);
 
   async function decide(id: string, decision: 'approve' | 'reject' | 'complete') {
-    await api.patch(`/returns/${id}`, { decision });
-    load();
+    try {
+      await api.patch(`/returns/${id}`, { decision });
+      toast(`Return ${decision}d`);
+      load();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
   }
 
   return (
@@ -53,7 +67,9 @@ export default function OwnerReturnsPage() {
               <td>{r.order?.number}</td>
               <td>{r.reason}</td>
               <td>
-                <span className="badge">{r.status}</span>
+                <span className="badge" style={{ background: statusColor(r.status) }}>
+                  {r.status}
+                </span>
               </td>
               <td className="row">
                 {r.status === 'REQUESTED' && (

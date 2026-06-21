@@ -25,6 +25,11 @@ export class OrdersController {
     return this.orders.findForUser(user);
   }
 
+  @Get(':id')
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.orders.findOne(id, user);
+  }
+
   // Owner, or an employee with 'order.approve', can advance order status.
   @Roles(Role.OWNER, Role.EMPLOYEE)
   @RequirePermissions('order.approve')

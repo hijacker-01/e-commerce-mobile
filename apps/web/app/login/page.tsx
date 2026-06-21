@@ -73,16 +73,29 @@ export default function LoginPage() {
           {mode === 'register' && (
             <>
               <label>Name</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} />
+              <input
+                value={name}
+                autoComplete="name"
+                onChange={(e) => setName(e.target.value)}
+              />
             </>
           )}
           <label>Phone</label>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <input
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+          />
           <label>Password</label>
           <input
             type="password"
+            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
           />
           {error && (
             <p className="error" style={{ marginTop: 10 }}>

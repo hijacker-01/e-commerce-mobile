@@ -139,6 +139,7 @@ model User {
   wishlist      WishlistItem[]
   returns       Return[]
   auditLogs     AuditLog[]
+  questions     ProductQuestion[]
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +195,10 @@ model Product {
   condition   ProductCondition @default(NEW)
   media       String[]         @default([]) // image/video URLs
   videoLinks  String[]         @default([]) // YouTube / Instagram embeds
+  // Variants of the same device (e.g. storage/colour) share a variantGroup;
+  // variantLabel is the human label for this specific variant ("256GB · Black").
+  variantGroup String?
+  variantLabel String?
   isActive    Boolean          @default(true)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -201,6 +206,7 @@ model Product {
   inventory        Inventory?
   orderItems       OrderItem[]
   reviews          Review[]
+  questions        ProductQuestion[]
   chatThreads      ChatThread[]
   specialLobbyItem SpecialLobbyItem?
   deviceKb         DeviceKB?
@@ -209,6 +215,22 @@ model Product {
 
   @@index([brand])
   @@index([categoryId])
+  @@index([variantGroup])
+}
+
+model ProductQuestion {
+  id         String    @id @default(cuid())
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id])
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  question   String    @db.Text
+  answer     String?   @db.Text
+  answeredBy String?
+  createdAt  DateTime  @default(now())
+  answeredAt DateTime?
+
+  @@index([productId])
 }
 
 model Inventory {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, getRole, getToken } from '../../../lib/api';
+import { toast } from '../../../lib/toast';
 
 interface Stockist {
   id: string;
@@ -35,7 +36,6 @@ export default function OwnerStockistsPage() {
   const [gstin, setGstin] = useState('');
   const [stockistId, setStockistId] = useState('');
   const [lines, setLines] = useState<Line[]>([]);
-  const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
 
   function load() {
@@ -55,10 +55,15 @@ export default function OwnerStockistsPage() {
   }, []);
 
   async function addStockist() {
-    await api.post('/stockists', { name, gstin: gstin || undefined });
-    setName('');
-    setGstin('');
-    load();
+    try {
+      await api.post('/stockists', { name, gstin: gstin || undefined });
+      setName('');
+      setGstin('');
+      toast('Stockist added');
+      load();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
   }
 
   function addLine() {
@@ -74,31 +79,29 @@ export default function OwnerStockistsPage() {
   }
 
   async function createChallan() {
-    setMsg(null);
     try {
       await api.post('/stockists/challans', { stockistId, items: lines });
       setLines([]);
-      setMsg('Challan issued ✓');
+      toast('Challan issued ✓');
       load();
     } catch (e) {
-      setMsg((e as Error).message);
+      toast((e as Error).message, 'error');
     }
   }
 
   async function receive(id: string) {
     try {
       await api.post(`/stockists/challans/${id}/receive`);
-      setMsg('Stock received → inventory updated ✓');
+      toast('Stock received → inventory updated ✓');
       load();
     } catch (e) {
-      setMsg((e as Error).message);
+      toast((e as Error).message, 'error');
     }
   }
 
   return (
     <main>
-      <h1>Stockists & challans</h1>
-      {msg && <p className="muted">{msg}</p>}
+      <h1>Stockists &amp; challans</h1>
 
       <div className="card">
         <h2 style={{ marginTop: 0 }}>Register stockist</h2>

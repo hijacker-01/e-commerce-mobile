@@ -46,9 +46,12 @@ export default function SupportPage() {
           </p>
         )}
         {messages.map((m, i) => (
-          <p key={i} style={{ margin: '6px 0' }}>
-            <span className="badge">{m.role}</span> {m.text}
-          </p>
+          <div
+            key={i}
+            className={`bubble ${m.role === 'you' ? 'bubble-me' : 'bubble-them'}`}
+          >
+            {m.text}
+          </div>
         ))}
         {busy && <p className="muted">…thinking</p>}
       </div>

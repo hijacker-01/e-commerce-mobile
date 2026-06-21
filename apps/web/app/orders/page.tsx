@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, getToken } from '../../lib/api';
+import { toast } from '../../lib/toast';
 
 interface Order {
   id: string;
@@ -24,17 +25,23 @@ function statusColor(status: string): string {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [points, setPoints] = useState<number | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [returnFor, setReturnFor] = useState<string | null>(null);
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
-  async function requestReturn(orderId: string) {
-    const reason = window.prompt('Reason for return?');
-    if (!reason) return;
+  async function submitReturn() {
+    if (!returnFor || !reason.trim()) return;
+    setSubmitting(true);
     try {
-      await api.post('/returns', { orderId, reason });
-      setNote('Return requested ✓');
+      await api.post('/returns', { orderId: returnFor, reason });
+      toast('Return requested ✓');
+      setReturnFor(null);
+      setReason('');
     } catch (e) {
-      setNote((e as Error).message);
+      toast((e as Error).message, 'error');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -69,7 +76,6 @@ export default function OrdersPage() {
           </span>
         )}
       </div>
-      {note && <p className="muted">{note}</p>}
       {orders.length === 0 ? (
         <div className="empty-state">
           <div className="emoji">📦</div>
@@ -93,8 +99,16 @@ export default function OrdersPage() {
             </thead>
             <tbody>
               {orders.map((o) => (
-                <tr key={o.id}>
-                  <td>{o.number}</td>
+                <tr
+                  key={o.id}
+                  className="clickable-row"
+                  onClick={() => router.push(`/orders/${o.id}`)}
+                >
+                  <td>
+                    <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
+                      {o.number}
+                    </span>
+                  </td>
                   <td>
                     <span
                       className="badge"
@@ -105,11 +119,11 @@ export default function OrdersPage() {
                   </td>
                   <td>{o.paymentStatus}</td>
                   <td>₹{o.total}</td>
-                  <td>
+                  <td onClick={(e) => e.stopPropagation()}>
                     {['APPROVED', 'DELIVERED'].includes(o.status) && (
                       <button
                         className="secondary"
-                        onClick={() => requestReturn(o.id)}
+                        onClick={() => setReturnFor(o.id)}
                       >
                         Return
                       </button>
@@ -119,6 +133,43 @@ export default function OrdersPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {returnFor && (
+        <div
+          className="modal-overlay"
+          onClick={() => !submitting && setReturnFor(null)}
+        >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Request a return</h3>
+            <p className="muted" style={{ marginTop: 0 }}>
+              Tell us why you&apos;d like to return this order.
+            </p>
+            <label>Reason</label>
+            <textarea
+              rows={3}
+              value={reason}
+              autoFocus
+              placeholder="e.g. Received a damaged unit"
+              onChange={(e) => setReason(e.target.value)}
+            />
+            <div className="modal-actions">
+              <button
+                className="secondary"
+                onClick={() => setReturnFor(null)}
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReturn}
+                disabled={submitting || !reason.trim()}
+              >
+                {submitting ? '…' : 'Submit return'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>

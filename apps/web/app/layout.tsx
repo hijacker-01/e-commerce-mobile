@@ -1,9 +1,11 @@
 import './globals.css';
 import type { ReactNode } from 'react';
 import Nav from '../components/Nav';
+import Toaster from '../components/Toaster';
+import CompareBar from '../components/CompareBar';
 
 export const metadata = {
-  title: 'Electronics Store',
+  title: 'SAMSUNG·Store — Smart Electronics',
   description: 'Smart electronics marketplace with AI device intelligence',
 };
 
@@ -13,6 +15,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Nav />
         <div className="container">{children}</div>
+        <CompareBar />
+        <Toaster />
       </body>
     </html>
   );

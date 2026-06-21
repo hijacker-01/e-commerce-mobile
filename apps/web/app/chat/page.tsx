@@ -24,6 +24,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
   const [offer, setOffer] = useState('');
+  const [meId, setMeId] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const role = getRole();
   const isStaff = role === 'OWNER' || role === 'EMPLOYEE';
@@ -35,6 +36,10 @@ export default function ChatPage() {
       router.push('/login');
       return;
     }
+    api
+      .get<{ id: string }>('/auth/me')
+      .then((u) => setMeId(u.id))
+      .catch(() => {});
     const fromUrl = new URLSearchParams(window.location.search).get('thread');
     api.get<Thread[]>('/chat/threads').then((t) => {
       setThreads(t);
@@ -114,34 +119,44 @@ export default function ChatPage() {
                 className="card"
                 style={{ minHeight: 280, maxHeight: 380, overflowY: 'auto' }}
               >
-                {messages.map((m) => (
-                  <div key={m.id} style={{ marginBottom: 10 }}>
-                    {m.offerAmount != null ? (
-                      <div>
-                        <span className="badge">offer</span> ₹{m.offerAmount}{' '}
-                        <span className="muted">({m.offerStatus})</span>
-                        {isStaff && m.offerStatus === 'PENDING' && (
-                          <span style={{ marginLeft: 8 }}>
-                            <button
-                              className="success"
-                              onClick={() => respond(m.id, 'ACCEPTED')}
-                            >
-                              Accept
-                            </button>{' '}
-                            <button
-                              className="secondary"
-                              onClick={() => respond(m.id, 'REJECTED')}
-                            >
-                              Reject
-                            </button>
+                {messages.map((m) => {
+                  const mine = meId != null && m.senderId === meId;
+                  return (
+                    <div
+                      key={m.id}
+                      className={`bubble ${mine ? 'bubble-me' : 'bubble-them'}`}
+                    >
+                      {m.offerAmount != null ? (
+                        <div>
+                          <strong>💰 Offer: ₹{m.offerAmount}</strong>{' '}
+                          <span
+                            style={{ opacity: 0.85, fontSize: 12 }}
+                          >
+                            ({m.offerStatus})
                           </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div>{m.body}</div>
-                    )}
-                  </div>
-                ))}
+                          {isStaff && m.offerStatus === 'PENDING' && (
+                            <div className="row" style={{ marginTop: 8 }}>
+                              <button
+                                className="success"
+                                onClick={() => respond(m.id, 'ACCEPTED')}
+                              >
+                                Accept
+                              </button>
+                              <button
+                                className="secondary"
+                                onClick={() => respond(m.id, 'REJECTED')}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        m.body
+                      )}
+                    </div>
+                  );
+                })}
                 {messages.length === 0 && (
                   <p className="muted">No messages yet.</p>
                 )}

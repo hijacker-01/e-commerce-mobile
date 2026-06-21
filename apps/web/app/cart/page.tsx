@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, getToken } from '../../lib/api';
+import { toast } from '../../lib/toast';
 
 interface CartItem {
   productId: string;
@@ -39,8 +40,34 @@ export default function CartPage() {
   }, []);
 
   async function setQty(productId: string, quantity: number) {
-    await api.patch(`/cart/items/${productId}`, { quantity });
-    load();
+    if (quantity < 0) return;
+    // Optimistic update for instant feedback.
+    setCart((prev) => {
+      if (!prev) return prev;
+      const items = prev.items
+        .map((i) =>
+          i.productId === productId
+            ? {
+                ...i,
+                quantity,
+                lineTotal: (Number(i.unitPrice) * quantity).toFixed(2),
+              }
+            : i,
+        )
+        .filter((i) => i.quantity > 0);
+      const subtotal = items
+        .reduce((s, i) => s + Number(i.lineTotal), 0)
+        .toFixed(2);
+      return { items, subtotal };
+    });
+    try {
+      await api.patch(`/cart/items/${productId}`, { quantity });
+      if (quantity === 0) toast('Item removed', 'info');
+      load(); // reconcile with server (taxes, stock caps, etc.)
+    } catch (e) {
+      toast((e as Error).message, 'error');
+      load(); // revert to server truth
+    }
   }
 
   if (error) return <p className="error">{error}</p>;
@@ -77,15 +104,23 @@ export default function CartPage() {
                     <td>{i.title}</td>
                     <td>₹{i.unitPrice}</td>
                     <td>
-                      <input
-                        type="number"
-                        min={0}
-                        value={i.quantity}
-                        style={{ width: 70 }}
-                        onChange={(e) =>
-                          setQty(i.productId, Number(e.target.value))
-                        }
-                      />
+                      <div className="stepper">
+                        <button
+                          className="secondary"
+                          aria-label="Decrease quantity"
+                          onClick={() => setQty(i.productId, i.quantity - 1)}
+                        >
+                          −
+                        </button>
+                        <span className="stepper-val">{i.quantity}</span>
+                        <button
+                          className="secondary"
+                          aria-label="Increase quantity"
+                          onClick={() => setQty(i.productId, i.quantity + 1)}
+                        >
+                          +
+                        </button>
+                      </div>
                     </td>
                     <td>₹{i.lineTotal}</td>
                     <td>

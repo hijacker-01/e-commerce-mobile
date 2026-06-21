@@ -8,6 +8,7 @@ import {
   IsPositive,
   IsString,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ProductCondition } from '@prisma/client';
 
 export class CreateProductDto {
@@ -81,13 +82,33 @@ export class ProductQueryDto {
   @IsString()
   q?: string;
 
+  // Electronics spec facets (matched against the product's specs JSON).
   @IsOptional()
+  @IsString()
+  processor?: string;
+
+  @IsOptional()
+  @IsString()
+  ram?: string;
+
+  @IsOptional()
+  @IsString()
+  storage?: string;
+
+  @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   minPrice?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   maxPrice?: number;
+
+  // price_asc | price_desc | newest (default)
+  @IsOptional()
+  @IsString()
+  sort?: string;
 
   @IsOptional()
   @IsBoolean()

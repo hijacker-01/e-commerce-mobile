@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, getRole, getToken } from '../../../lib/api';
+import { toast } from '../../../lib/toast';
 
 interface User {
   id: string;
@@ -29,7 +30,6 @@ export default function OwnerCreditPage() {
   const [limit, setLimit] = useState('');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
-  const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,18 +51,16 @@ export default function OwnerCreditPage() {
   }
 
   async function saveTerms() {
-    setMsg(null);
     try {
       await api.put(`/credit/${selected}/terms`, { limit: Number(limit) });
-      setMsg('Terms saved ✓');
+      toast('Terms saved ✓');
       loadAccount(selected);
     } catch (e) {
-      setMsg((e as Error).message);
+      toast((e as Error).message, 'error');
     }
   }
 
   async function addLedger() {
-    setMsg(null);
     try {
       await api.post(`/credit/${selected}/ledger`, {
         amount: Number(amount),
@@ -70,17 +68,16 @@ export default function OwnerCreditPage() {
       });
       setAmount('');
       setReason('');
-      setMsg('Ledger updated ✓');
+      toast('Ledger updated ✓');
       loadAccount(selected);
     } catch (e) {
-      setMsg((e as Error).message);
+      toast((e as Error).message, 'error');
     }
   }
 
   return (
     <main>
       <h1>Customer credit</h1>
-      {msg && <p className="muted">{msg}</p>}
       <label>Customer</label>
       <select value={selected} onChange={(e) => loadAccount(e.target.value)}>
         <option value="">Select…</option>

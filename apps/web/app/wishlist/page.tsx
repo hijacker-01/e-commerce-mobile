@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, getToken } from '../../lib/api';
+import { toast } from '../../lib/toast';
 
 interface Product {
   id: string;
@@ -37,9 +38,15 @@ export default function WishlistPage() {
 
   async function remove(productId: string) {
     setItems(await api.del<WishlistItem[]>(`/wishlist/${productId}`));
+    toast('Removed from wishlist', 'info');
   }
   async function addToCart(productId: string) {
-    await api.post('/cart/items', { productId, quantity: 1 });
+    try {
+      await api.post('/cart/items', { productId, quantity: 1 });
+      toast('Added to cart');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
   }
 
   return (

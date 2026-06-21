@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, getRole, getToken } from '../../../lib/api';
+import { toast } from '../../../lib/toast';
 
 interface Product {
   id: string;
@@ -46,20 +47,33 @@ export default function StorefrontPage() {
 
   async function addLobby() {
     if (!pick) return;
-    await api.post('/lobby', { productId: pick });
-    load();
+    try {
+      await api.post('/lobby', { productId: pick });
+      setPick('');
+      toast('Featured on storefront ✓');
+      load();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
   }
   async function removeLobby(productId: string) {
     await api.del(`/lobby/${productId}`);
+    toast('Removed from lobby', 'info');
     load();
   }
   async function addCenter() {
-    await api.post('/service-centers', sc);
-    setSc({ brand: '', name: '', address: '', phone: '' });
-    load();
+    try {
+      await api.post('/service-centers', sc);
+      setSc({ brand: '', name: '', address: '', phone: '' });
+      toast('Service center added ✓');
+      load();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
   }
   async function removeCenter(id: string) {
     await api.del(`/service-centers/${id}`);
+    toast('Service center removed', 'info');
     load();
   }
 
