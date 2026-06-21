@@ -29,6 +29,11 @@ export class CreditService {
     });
   }
 
+  /** Owner view of a specific customer's credit account. */
+  getForUser(userId: string) {
+    return this.getMine(userId);
+  }
+
   /** Owner sets terms and activates the account (the "owner-set credit model"). */
   async setTerms(userId: string, dto: SetCreditTermsDto) {
     return this.prisma.creditAccount.upsert({

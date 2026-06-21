@@ -21,6 +21,13 @@ export class CreditController {
     return this.credit.getMine(user.id);
   }
 
+  // Owner views a customer's credit account.
+  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Get(':userId')
+  forUser(@Param('userId') userId: string) {
+    return this.credit.getForUser(userId);
+  }
+
   // Owner sets the credit model / terms per customer.
   @Roles(Role.OWNER)
   @Put(':userId/terms')

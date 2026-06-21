@@ -40,6 +40,8 @@ async function main() {
   const product = products[0];
   const startStock = product.inventory?.quantity ?? 0;
   check(startStock > 0, `seeded product in stock (${startStock})`);
+  const detail = await api(`/products/${product.id}`);
+  check(!!detail.shop?.address, `product shows shop location (${detail.shop?.address})`);
 
   console.log('3. Register a fresh customer');
   const phone = `9${Date.now().toString().slice(-9)}`;
@@ -85,11 +87,16 @@ async function main() {
     `stock decremented ${startStock} -> ${after.inventory.quantity}`,
   );
 
+  console.log('6b. Loyalty points awarded on approval');
+  const loyalty = await api('/loyalty/me', { token: ctoken });
+  check(loyalty.points > 0, `loyalty points earned (${loyalty.points})`);
+
   console.log('7. Owner generates GST invoice + warranty card');
+  const imei = `IMEI${Date.now()}`;
   const invoice = await api('/invoices', {
     method: 'POST',
     token: owner.accessToken,
-    body: { orderId: order.id, type: 'GST' },
+    body: { orderId: order.id, type: 'GST', serialOrImei: imei },
   });
   check(invoice.number?.startsWith('INV-'), `invoice numbered ${invoice.number}`);
   check(
@@ -97,6 +104,14 @@ async function main() {
     `intra-state CGST+SGST split (cgst=${invoice.cgst}, sgst=${invoice.sgst})`,
   );
   check(invoice.warrantyCard, 'warranty card created');
+  const pdfRes = await fetch(`${BASE}/invoices/${invoice.id}/pdf`, {
+    headers: { Authorization: `Bearer ${owner.accessToken}` },
+  });
+  const pdfBuf = Buffer.from(await pdfRes.arrayBuffer());
+  check(
+    pdfRes.ok && pdfBuf.subarray(0, 4).toString('latin1') === '%PDF',
+    `GST invoice PDF generated (${pdfBuf.length} bytes)`,
+  );
 
   console.log('8. Coupon: owner creates, customer applies');
   const code = `SAVE${Date.now().toString().slice(-5)}`;
@@ -129,6 +144,168 @@ async function main() {
     forbidden = /403/.test(e.message);
   }
   check(forbidden, 'customer blocked from approving (RBAC works)');
+
+  console.log('10. Notification raised on order approval');
+  const notifs = await api('/notifications', { token: ctoken });
+  check(
+    notifs.some((n) => n.type === 'order' && /APPROVED/.test(n.title)),
+    'customer got order-approved notification',
+  );
+  const unread = await api('/notifications/unread-count', { token: ctoken });
+  check(unread.count >= 1, `unread count tracked (${unread.count})`);
+
+  console.log('11. Owner analytics summary');
+  const stats = await api('/analytics/summary', { token: owner.accessToken });
+  check(Number(stats.inventoryValue) > 0, `inventory valued (${stats.inventoryValue})`);
+  check(stats.topProducts.length >= 1, 'top products computed');
+  check(
+    Number(stats.gstCollected) > 0,
+    `GST collected aggregated (${stats.gstCollected})`,
+  );
+
+  console.log('12. Credit model: apply → owner sets terms → ledger');
+  const me = await api('/auth/me', { token: ctoken });
+  await api('/credit/apply', { method: 'POST', token: ctoken });
+  await api(`/credit/${me.id}/terms`, {
+    method: 'PUT',
+    token: owner.accessToken,
+    body: { limit: 50000, tenureDays: 30 },
+  });
+  await api(`/credit/${me.id}/ledger`, {
+    method: 'POST',
+    token: owner.accessToken,
+    body: { amount: 10000, reason: 'EMI purchase' },
+  });
+  const credit = await api('/credit/me', { token: ctoken });
+  check(credit.status === 'ACTIVE', 'credit account activated by owner');
+  check(Number(credit.balance) === 10000, `ledger balance tracked (${credit.balance})`);
+  const ownerView = await api(`/credit/${me.id}`, { token: owner.accessToken });
+  check(Number(ownerView.balance) === 10000, 'owner can view customer credit');
+
+  console.log('13. Exchange portal: submit → owner approves');
+  const ex = await api('/exchange', {
+    method: 'POST',
+    token: ctoken,
+    body: { brand: 'Apple', model: 'iPhone 12', condition: 'good' },
+  });
+  check(['SUBMITTED', 'AI_VALUED'].includes(ex.status), 'exchange submitted');
+  const reviewed = await api(`/exchange/${ex.id}`, {
+    method: 'PATCH',
+    token: owner.accessToken,
+    body: { decision: 'approve', approvedValue: 22000 },
+  });
+  check(reviewed.status === 'APPROVED', 'owner approved exchange');
+  check(Number(reviewed.approvedValue) === 22000, 'approved value set');
+
+  console.log('14. Stockist supply: register → challan → receive (stock up)');
+  const before = await api(`/products/${product.id}`);
+  const beforeQty = before.inventory?.quantity ?? 0;
+  const stockist = await api('/stockists', {
+    method: 'POST',
+    token: owner.accessToken,
+    body: { name: 'Acme Distributors', gstin: '27ZZZZZ1234Z1Z5' },
+  });
+  check(stockist.id, 'stockist registered');
+  const challan = await api('/stockists/challans', {
+    method: 'POST',
+    token: owner.accessToken,
+    body: {
+      stockistId: stockist.id,
+      items: [
+        { productId: product.id, name: product.title, quantity: 5, rate: 25000 },
+      ],
+    },
+  });
+  check(challan.number?.startsWith('CH-'), `challan issued ${challan.number}`);
+  check(Number(challan.totalAmount) === 125000, 'challan total computed');
+  await api(`/stockists/challans/${challan.id}/receive`, {
+    method: 'POST',
+    token: owner.accessToken,
+  });
+  const restocked = await api(`/products/${product.id}`);
+  check(
+    restocked.inventory.quantity === beforeQty + 5,
+    `inventory increased ${beforeQty} -> ${restocked.inventory.quantity}`,
+  );
+
+  console.log('15. Health check');
+  const health = await api('/health');
+  check(health.status === 'ok' && health.db === 'up', 'health reports DB up');
+
+  console.log('16. Wishlist: add → list → remove');
+  const wl = await api(`/wishlist/${product.id}`, { method: 'POST', token: ctoken });
+  check(wl.some((w) => w.productId === product.id), 'product added to wishlist');
+  const wl2 = await api(`/wishlist/${product.id}`, {
+    method: 'DELETE',
+    token: ctoken,
+  });
+  check(!wl2.some((w) => w.productId === product.id), 'product removed from wishlist');
+
+  console.log('17. Returns/RMA: request → owner approves');
+  const ret = await api('/returns', {
+    method: 'POST',
+    token: ctoken,
+    body: { orderId: order.id, reason: 'Defective unit' },
+  });
+  check(ret.status === 'REQUESTED', 'return requested');
+  const decided = await api(`/returns/${ret.id}`, {
+    method: 'PATCH',
+    token: owner.accessToken,
+    body: { decision: 'approve' },
+  });
+  check(decided.status === 'APPROVED', 'owner approved return');
+
+  console.log('18. Search: reindex → query finds the product');
+  const reindex = await api('/search/reindex', {
+    method: 'POST',
+    token: owner.accessToken,
+  });
+  check(reindex.indexed >= 1, `search reindexed ${reindex.indexed} (${reindex.engine})`);
+  const found = await api(`/search?brand=${encodeURIComponent(product.brand)}`);
+  check(
+    found.hits.some((h) => h.id === product.id),
+    `search returned the product via ${found.engine}`,
+  );
+
+  console.log('19. Genuine-product / warranty verification by IMEI');
+  const genuine = await api(`/verify/imei/${imei}`);
+  check(genuine.genuine === true && genuine.brand === product.brand, 'IMEI verified as genuine');
+  const fake = await api('/verify/imei/NOPE-000');
+  check(fake.genuine === false, 'unknown IMEI reported not genuine');
+
+  console.log('20. Flash-sale offers: owner creates → public sees active');
+  await api('/offers', {
+    method: 'POST',
+    token: owner.accessToken,
+    body: {
+      title: 'Diwali Sale',
+      startsAt: new Date(Date.now() - 3600000).toISOString(),
+      endsAt: new Date(Date.now() + 86400000).toISOString(),
+    },
+  });
+  const offers = await api('/offers');
+  check(offers.some((o) => o.title === 'Diwali Sale'), 'active offer listed publicly');
+
+  console.log('21. Audit log captures ERP actions');
+  const audit = await api('/audit', { token: owner.accessToken });
+  check(
+    audit.some((a) => a.entity === 'order' || a.entity === 'invoice'),
+    `audit log populated (${audit.length} entries)`,
+  );
+
+  console.log('22. AI support endpoint responds (503 without key is OK)');
+  let supportOk = false;
+  try {
+    const r = await api('/ai/support', {
+      method: 'POST',
+      token: ctoken,
+      body: { question: 'Where is my order?' },
+    });
+    supportOk = typeof r.answer === 'string';
+  } catch (e) {
+    supportOk = /503/.test(e.message); // graceful when GROQ_API_KEY unset
+  }
+  check(supportOk, 'AI support replies or degrades gracefully');
 
   console.log(`\nALL ${passed} CHECKS PASSED ✅`);
 }

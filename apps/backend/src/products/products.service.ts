@@ -1,14 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SearchService } from '../search/search.service';
 import { CreateProductDto, ProductQueryDto } from './dto/product.dto';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly search: SearchService,
+  ) {}
 
-  create(dto: CreateProductDto) {
-    return this.prisma.product.create({
+  async create(dto: CreateProductDto) {
+    const product = await this.prisma.product.create({
       data: {
         shopId: dto.shopId,
         categoryId: dto.categoryId,
@@ -26,15 +30,119 @@ export class ProductsService {
         videoLinks: dto.videoLinks ?? [],
       },
     });
+    // Best-effort index into the search engine.
+    await this.search.indexProduct(product);
+    return product;
+  }
+
+  /** Lightweight lookups for the storefront filters & owner product form. */
+  listCategories() {
+    return this.prisma.category.findMany({
+      select: { id: true, name: true, slug: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  listShops() {
+    return this.prisma.shop.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
+   * Available filter values for the smart filter menu. Scoped to a category
+   * when given, so the dropdowns only show options relevant to what's shown.
+   */
+  async facets(categoryId?: string) {
+    const products = await this.prisma.product.findMany({
+      where: { isActive: true, ...(categoryId ? { categoryId } : {}) },
+      select: { brand: true, price: true, specs: true },
+    });
+    const brands = new Set<string>();
+    const processors = new Set<string>();
+    const ram = new Set<string>();
+    const storage = new Set<string>();
+    let priceMin = Infinity;
+    let priceMax = 0;
+    for (const p of products) {
+      brands.add(p.brand);
+      const s = (p.specs ?? {}) as Record<string, unknown>;
+      if (s.processor) processors.add(String(s.processor));
+      if (s.ram) ram.add(String(s.ram));
+      if (s.storage) storage.add(String(s.storage));
+      const price = Number(p.price);
+      priceMin = Math.min(priceMin, price);
+      priceMax = Math.max(priceMax, price);
+    }
+    const sort = (set: Set<string>) => [...set].sort();
+    return {
+      brands: sort(brands),
+      processors: sort(processors),
+      ram: sort(ram),
+      storage: sort(storage),
+      priceMin: Number.isFinite(priceMin) ? priceMin : 0,
+      priceMax,
+    };
   }
 
   async findOne(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: { inventory: true, category: true, reviews: true },
+      include: {
+        inventory: true,
+        category: true,
+        reviews: true,
+        // Shop area/location shown as plain text (no map).
+        shop: {
+          select: { name: true, address: true, hours: true, phone: true },
+        },
+      },
     });
     if (!product) throw new NotFoundException('Product not found');
-    return product;
+
+    // Sibling variants (same storage/colour family) for the variant selector.
+    let variants: Array<{
+      id: string;
+      variantLabel: string | null;
+      price: Prisma.Decimal;
+      inventory: { quantity: number } | null;
+    }> = [];
+    if (product.variantGroup) {
+      variants = await this.prisma.product.findMany({
+        where: { variantGroup: product.variantGroup, isActive: true },
+        select: {
+          id: true,
+          variantLabel: true,
+          price: true,
+          inventory: { select: { quantity: true } },
+        },
+        orderBy: { price: 'asc' },
+      });
+    }
+    return { ...product, variants };
+  }
+
+  // ---- Product Q&A ----
+  listQuestions(productId: string) {
+    return this.prisma.productQuestion.findMany({
+      where: { productId },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  askQuestion(userId: string, productId: string, question: string) {
+    return this.prisma.productQuestion.create({
+      data: { userId, productId, question },
+    });
+  }
+
+  answerQuestion(questionId: string, answer: string, answeredBy: string) {
+    return this.prisma.productQuestion.update({
+      where: { id: questionId },
+      data: { answer, answeredBy, answeredAt: new Date() },
+    });
   }
 
   /** Faceted listing for the smart-filter storefront. */
@@ -55,10 +163,30 @@ export class ProductsService {
         { model: { contains: query.q, mode: 'insensitive' } },
       ];
     }
+    // Spec facet filters live inside the JSON `specs` column.
+    const specFilters: Prisma.ProductWhereInput[] = [];
+    if (query.processor)
+      specFilters.push({ specs: { path: ['processor'], equals: query.processor } });
+    if (query.ram)
+      specFilters.push({ specs: { path: ['ram'], equals: query.ram } });
+    if (query.storage)
+      specFilters.push({ specs: { path: ['storage'], equals: query.storage } });
+    if (specFilters.length) where.AND = specFilters;
+
+    const orderBy: Prisma.ProductOrderByWithRelationInput =
+      query.sort === 'price_asc'
+        ? { price: 'asc' }
+        : query.sort === 'price_desc'
+          ? { price: 'desc' }
+          : { createdAt: 'desc' };
+
     return this.prisma.product.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
-      include: { inventory: true },
+      orderBy,
+      include: {
+        inventory: true,
+        category: { select: { id: true, name: true, slug: true } },
+      },
     });
   }
 }

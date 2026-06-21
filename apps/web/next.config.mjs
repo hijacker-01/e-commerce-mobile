@@ -4,6 +4,11 @@ const nextConfig = {
   transpilePackages: ['@ecom/shared'],
   // Type errors still fail the build; skip lint-style rules for the MVP.
   eslint: { ignoreDuringBuilds: true },
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+    ],
+  },
 };
 
 export default nextConfig;

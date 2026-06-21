@@ -1,8 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, getRole, getToken } from '../../lib/api';
+import { toast } from '../../lib/toast';
+
+function statusColor(status: string): string {
+  const s = status.toUpperCase();
+  if (['DELIVERED', 'APPROVED', 'COMPLETED', 'PAID'].includes(s)) return '#15803d';
+  if (['CANCELLED', 'REJECTED', 'RETURNED'].includes(s)) return '#dc2626';
+  if (['REQUESTED', 'PENDING', 'AWAITING'].includes(s)) return '#b45309';
+  return '#1428a0';
+}
 
 interface Order {
   id: string;
@@ -11,6 +21,7 @@ interface Order {
   total: string;
 }
 interface Invoice {
+  id: string;
   number: string;
   cgst: string;
   sgst: string;
@@ -18,13 +29,41 @@ interface Invoice {
   total: string;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+// PDF endpoints are JWT-protected, so fetch as a blob (a plain <a> can't send
+// the auth header) and trigger a download.
+async function downloadPdf(path: string, filename: string) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_URL}/api${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) return;
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+interface Summary {
+  revenuePaid: string;
+  paidOrders: number;
+  inventoryValue: string;
+  lowStockCount: number;
+  gstCollected: string;
+  topProducts: { title: string; unitsSold: number }[];
+}
+
 export default function OwnerPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [msg, setMsg] = useState<string | null>(null);
+  const [stats, setStats] = useState<Summary | null>(null);
   const router = useRouter();
 
   function loadOrders() {
     api.get<Order[]>('/orders').then(setOrders).catch(() => {});
+    api.get<Summary>('/analytics/summary').then(setStats).catch(() => {});
   }
 
   useEffect(() => {
@@ -40,28 +79,95 @@ export default function OwnerPage() {
   async function advance(id: string, status: string) {
     try {
       await api.patch(`/orders/${id}/status`, { status });
-      setMsg(`Order → ${status}`);
+      toast(`Order → ${status}`);
       loadOrders();
     } catch (e) {
-      setMsg((e as Error).message);
+      toast((e as Error).message, 'error');
     }
   }
 
   async function makeInvoice(id: string) {
     try {
       const inv = await api.post<Invoice>('/invoices', { orderId: id, type: 'GST' });
-      setMsg(
-        `Invoice ${inv.number}: CGST ₹${inv.cgst} + SGST ₹${inv.sgst} + IGST ₹${inv.igst} = ₹${inv.total}`,
+      toast(`Invoice ${inv.number} · ₹${inv.total} — downloading PDFs…`);
+      // Download the generated GST invoice + warranty card PDFs.
+      await downloadPdf(`/invoices/${inv.id}/pdf`, `${inv.number}.pdf`);
+      await downloadPdf(
+        `/invoices/${inv.id}/warranty.pdf`,
+        `${inv.number}-warranty.pdf`,
       );
     } catch (e) {
-      setMsg((e as Error).message);
+      toast((e as Error).message, 'error');
     }
   }
 
   return (
     <main>
       <h1>Owner dashboard</h1>
-      {msg && <p className="muted">{msg}</p>}
+      <div className="row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+        <Link className="btn" href="/owner/stockists">
+          Stockists &amp; challans
+        </Link>
+        <Link className="btn secondary" href="/owner/credit">
+          Customer credit
+        </Link>
+        <Link className="btn secondary" href="/owner/storefront">
+          Storefront (lobby + services)
+        </Link>
+        <Link className="btn secondary" href="/owner/returns">
+          Returns
+        </Link>
+        <Link className="btn secondary" href="/owner/audit">
+          Audit log
+        </Link>
+      </div>
+
+      {stats && (
+        <div className="grid" style={{ marginBottom: 24 }}>
+          <div className="card">
+            <div className="muted">Paid revenue</div>
+            <div className="price" style={{ fontSize: 22 }}>
+              ₹{stats.revenuePaid}
+            </div>
+            <div className="muted">{stats.paidOrders} paid orders</div>
+          </div>
+          <div className="card">
+            <div className="muted">Inventory value</div>
+            <div className="price" style={{ fontSize: 22 }}>
+              ₹{stats.inventoryValue}
+            </div>
+            <div
+              className="muted"
+              style={
+                stats.lowStockCount > 0
+                  ? { color: 'var(--danger)', fontWeight: 600 }
+                  : undefined
+              }
+            >
+              {stats.lowStockCount > 0 ? '⚠ ' : ''}
+              {stats.lowStockCount} low-stock items
+            </div>
+          </div>
+          <div className="card">
+            <div className="muted">GST collected</div>
+            <div className="price" style={{ fontSize: 22 }}>
+              ₹{stats.gstCollected}
+            </div>
+          </div>
+          <div className="card">
+            <div className="muted">Top sellers</div>
+            {stats.topProducts.length === 0 ? (
+              <div className="muted">—</div>
+            ) : (
+              stats.topProducts.map((t) => (
+                <div key={t.title} style={{ fontSize: 13, marginTop: 4 }}>
+                  {t.title} · <span className="muted">{t.unitsSold} sold</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       <h2>Orders</h2>
       <table>
@@ -78,7 +184,9 @@ export default function OwnerPage() {
             <tr key={o.id}>
               <td>{o.number}</td>
               <td>
-                <span className="badge">{o.status}</span>
+                <span className="badge" style={{ background: statusColor(o.status) }}>
+                  {o.status}
+                </span>
               </td>
               <td>₹{o.total}</td>
               <td className="row">
@@ -102,7 +210,7 @@ export default function OwnerPage() {
       </table>
       {orders.length === 0 && <p className="muted">No orders.</p>}
 
-      <ProductCreator onCreated={() => setMsg('Product listed ✓')} />
+      <ProductCreator onCreated={() => loadOrders()} />
     </main>
   );
 }
@@ -115,20 +223,38 @@ interface DraftResp {
     suggestedPriceMinInr?: number;
   } | null;
 }
+interface Lookup {
+  id: string;
+  name: string;
+}
 function ProductCreator({ onCreated }: { onCreated: () => void }) {
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
+  const [mrp, setMrp] = useState('');
   const [description, setDescription] = useState('');
-  // Shop/Category IDs are pasted by the owner (no public lookup endpoint yet).
+  const [media, setMedia] = useState('');
+  const [shops, setShops] = useState<Lookup[]>([]);
+  const [categories, setCategories] = useState<Lookup[]>([]);
   const [shopId, setShopId] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Load lookups so the owner picks from dropdowns (no pasting raw IDs).
+  useEffect(() => {
+    api.get<Lookup[]>('/products/meta/shops').then((s) => {
+      setShops(s);
+      if (s[0]) setShopId(s[0].id);
+    }).catch(() => {});
+    api.get<Lookup[]>('/products/meta/categories').then((c) => {
+      setCategories(c);
+      if (c[0]) setCategoryId(c[0].id);
+    }).catch(() => {});
+  }, []);
 
   async function aiDraft() {
-    setErr(null);
     setBusy(true);
     try {
       const r = await api.post<DraftResp>('/ai/draft-listing', { brand, model });
@@ -137,17 +263,22 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
         setDescription(r.draft.description ?? '');
         if (r.draft.suggestedPriceMinInr)
           setPrice(String(r.draft.suggestedPriceMinInr));
+        toast('AI draft ready — review & publish');
       }
     } catch (e) {
-      setErr((e as Error).message);
+      toast((e as Error).message, 'error');
     } finally {
       setBusy(false);
     }
   }
 
   async function create() {
-    setErr(null);
+    setSaving(true);
     try {
+      const mediaUrls = media
+        .split(/[\n,]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
       await api.post('/products', {
         shopId,
         categoryId,
@@ -156,12 +287,27 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
         title,
         description,
         price: Number(price),
+        mrp: mrp ? Number(mrp) : undefined,
+        media: mediaUrls,
       });
+      toast('Product listed ✓');
+      // Reset the form for the next entry.
+      setBrand('');
+      setModel('');
+      setTitle('');
+      setPrice('');
+      setMrp('');
+      setDescription('');
+      setMedia('');
       onCreated();
     } catch (e) {
-      setErr((e as Error).message);
+      toast((e as Error).message, 'error');
+    } finally {
+      setSaving(false);
     }
   }
+
+  const canPublish = !!(shopId && categoryId && brand && model && title && price);
 
   return (
     <div className="card" style={{ marginTop: 28 }}>
@@ -195,20 +341,58 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
       <div className="row">
         <div style={{ flex: 1 }}>
           <label>Price (₹)</label>
-          <input value={price} onChange={(e) => setPrice(e.target.value)} />
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label>MRP (₹) — optional</label>
+          <input
+            type="number"
+            value={mrp}
+            onChange={(e) => setMrp(e.target.value)}
+          />
         </div>
       </div>
-      <label>Shop ID</label>
-      <input value={shopId} onChange={(e) => setShopId(e.target.value)} />
-      <label>Category ID</label>
-      <input value={categoryId} onChange={(e) => setCategoryId(e.target.value)} />
-      {err && (
-        <p className="error" style={{ marginTop: 8 }}>
-          {err}
-        </p>
-      )}
-      <button style={{ marginTop: 14 }} onClick={create}>
-        Publish listing
+      <div className="row">
+        <div style={{ flex: 1 }}>
+          <label>Category</label>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+          >
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{ flex: 1 }}>
+          <label>Shop</label>
+          <select value={shopId} onChange={(e) => setShopId(e.target.value)}>
+            {shops.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <label>Image URLs (one per line)</label>
+      <textarea
+        value={media}
+        placeholder="https://…/photo.jpg"
+        onChange={(e) => setMedia(e.target.value)}
+      />
+      <button
+        style={{ marginTop: 14 }}
+        onClick={create}
+        disabled={!canPublish || saving}
+      >
+        {saving ? 'Publishing…' : 'Publish listing'}
       </button>
     </div>
   );

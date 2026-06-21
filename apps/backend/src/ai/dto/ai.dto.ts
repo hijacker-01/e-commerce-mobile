@@ -35,3 +35,8 @@ export class DraftListingDto {
   @IsString()
   category?: string;
 }
+
+export class SupportDto {
+  @IsString()
+  question!: string;
+}

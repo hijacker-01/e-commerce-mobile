@@ -1,67 +1,112 @@
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
-  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import type { Product } from '@ecom/shared';
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { clearAuth, isAuthed, loadAuth } from './src/api';
+import { Route } from './src/nav';
+import { colors } from './src/theme';
+import LoginScreen from './src/screens/LoginScreen';
+import CatalogScreen from './src/screens/CatalogScreen';
+import ProductScreen from './src/screens/ProductScreen';
+import CartScreen from './src/screens/CartScreen';
+import OrdersScreen from './src/screens/OrdersScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
+import ExchangeScreen from './src/screens/ExchangeScreen';
 
 export default function App() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [stack, setStack] = useState<Route[]>([{ name: 'login' }]);
+  const route = stack[stack.length - 1];
 
+  // Restore a persisted session on launch.
   useEffect(() => {
-    fetch(`${API_URL}/api/products`)
-      .then((r) => r.json())
-      .then(setProducts)
-      .catch(() => setError('Backend not reachable. Run `npm run backend`.'))
-      .finally(() => setLoading(false));
+    loadAuth().then((authed) => {
+      setStack([{ name: authed ? 'catalog' : 'login' }]);
+      setReady(true);
+    });
   }, []);
 
+  const go = (r: Route) => setStack((s) => [...s, r]);
+  const back = () => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  const reset = (r: Route) => setStack([r]);
+
+  async function logout() {
+    await clearAuth();
+    reset({ name: 'login' });
+  }
+
+  function render() {
+    switch (route.name) {
+      case 'login':
+        return <LoginScreen go={reset} back={back} />;
+      case 'catalog':
+        return <CatalogScreen go={go} back={back} />;
+      case 'product':
+        return <ProductScreen id={route.id} go={go} back={back} />;
+      case 'cart':
+        return <CartScreen go={go} back={back} />;
+      case 'orders':
+        return <OrdersScreen />;
+      case 'notifications':
+        return <NotificationsScreen />;
+      case 'exchange':
+        return <ExchangeScreen />;
+    }
+  }
+
+  if (!ready) {
+    return (
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center' }}
+      >
+        <ActivityIndicator color={colors.accent} />
+      </SafeAreaView>
+    );
+  }
+
+  const authed = isAuthed() && route.name !== 'login';
+
   return (
-    <View style={styles.container}>
-      <StatusBar style="light" />
-      <Text style={styles.title}>Electronics Store</Text>
-      {loading && <ActivityIndicator color="#fff" />}
-      {error && <Text style={styles.error}>{error}</Text>}
-      <FlatList
-        data={products}
-        keyExtractor={(p) => p.id}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardMeta}>
-              {item.brand} {item.model}
-            </Text>
-            <Text style={styles.price}>₹{item.price}</Text>
-          </View>
-        )}
-        ListEmptyComponent={
-          !loading && !error ? <Text style={styles.meta}>No products yet.</Text> : null
-        }
-      />
-    </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }}>
+      <StatusBar barStyle="light-content" />
+      {authed && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{
+            maxHeight: 48,
+            backgroundColor: colors.panel,
+            borderBottomColor: colors.border,
+            borderBottomWidth: 1,
+          }}
+          contentContainerStyle={{ alignItems: 'center', gap: 16, paddingHorizontal: 16 }}
+        >
+          <Text style={{ color: colors.text, fontWeight: '700' }}>⚡ Store</Text>
+          <NavLink label="Shop" onPress={() => reset({ name: 'catalog' })} />
+          <NavLink label="Cart" onPress={() => go({ name: 'cart' })} />
+          <NavLink label="Orders" onPress={() => go({ name: 'orders' })} />
+          <NavLink label="Alerts" onPress={() => go({ name: 'notifications' })} />
+          <NavLink label="Exchange" onPress={() => go({ name: 'exchange' })} />
+          <TouchableOpacity onPress={logout}>
+            <Text style={{ color: colors.danger }}>Logout</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
+      <View style={{ flex: 1 }}>{render()}</View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0b1220', padding: 20, paddingTop: 60 },
-  title: { color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 16 },
-  meta: { color: '#9aa4b2' },
-  error: { color: '#ff6b6b', marginBottom: 12 },
-  card: {
-    backgroundColor: '#131c2e',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  cardTitle: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  cardMeta: { color: '#9aa4b2', fontSize: 13, marginTop: 2 },
-  price: { color: '#4ade80', fontSize: 15, fontWeight: '700', marginTop: 8 },
-});
+function NavLink({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity onPress={onPress}>
+      <Text style={{ color: colors.muted }}>{label}</Text>
+    </TouchableOpacity>
+  );
+}

@@ -19,7 +19,7 @@ docker-compose.yml   Postgres(pgvector) + Redis + Meilisearch
 
 ## Stack
 React Native (Expo) · Next.js · NestJS · PostgreSQL + pgvector · Redis · Meilisearch ·
-Anthropic Claude (AI engine) · Razorpay/UPI (India) · GST-ready billing.
+Groq (AI engine, OpenAI-compatible) · Razorpay/UPI (India) · GST-ready billing.
 
 ## Roles (RBAC)
 `OWNER`, `EMPLOYEE`, `STOCKIST`, `CUSTOMER`. Owner can grant **granular permission
@@ -59,7 +59,13 @@ npm run test:smoke --workspace apps/backend
 ```
 Drives: owner login → catalog → register customer → cart → delivery-slot order →
 owner approval (with stock decrement) → GST invoice + warranty card → coupon apply
-→ RBAC denial. 15 assertions.
+→ RBAC denial → notifications → analytics → credit → exchange → stockist
+challan/GRN + invoice PDF + loyalty + wishlist + returns + health + search + verify + offers + audit + AI-support. 44 assertions.
+
+Chat-bargaining WebSocket test (auth → message → offer/accept → bad-token reject):
+```bash
+npm run test:chat --workspace apps/backend
+```
 
 ### 5. Run the apps
 ```bash
@@ -85,6 +91,8 @@ npm run mobile                # Expo  -> scan QR / press a (Android) / i (iOS)
 | POST | `/api/invoices` | OWNER / EMPLOYEE+`invoice.create` |
 | GET | `/api/invoices/gst-report` | OWNER / EMPLOYEE |
 | GET | `/api/invoices/:id` | authed |
+| GET | `/api/invoices/:id/pdf` | authed (GST invoice PDF) |
+| GET | `/api/invoices/:id/warranty.pdf` | authed (warranty card PDF) |
 | POST | `/api/ai/compare` | public (AI device comparison) |
 | POST | `/api/ai/recommend` | public (AI device recommender) |
 | POST | `/api/ai/draft-listing` | OWNER / EMPLOYEE+`product.write` (spec auto-fill) |
@@ -106,6 +114,24 @@ npm run mobile                # Expo  -> scan QR / press a (Android) / i (iOS)
 | POST/DELETE | `/api/service-centers` | OWNER / EMPLOYEE |
 | GET | `/api/lobby` | public (curated picks) |
 | POST/DELETE | `/api/lobby` | OWNER (curate) |
+| GET | `/api/notifications` | authed (own, latest 50) |
+| GET | `/api/notifications/unread-count` | authed |
+| POST | `/api/notifications/:id/read` / `/read-all` | authed |
+| GET | `/api/loyalty/me` | CUSTOMER (points balance) |
+| GET/POST/DELETE | `/api/wishlist[/:productId]` | CUSTOMER |
+| POST/GET | `/api/returns` (+`/me`, `/:id`) | CUSTOMER request; OWNER/EMPLOYEE manage |
+| GET | `/api/health` | public (DB readiness) |
+| GET | `/api/search` | public (Meilisearch faceted, DB fallback) |
+| POST | `/api/search/reindex` | OWNER / EMPLOYEE |
+| GET/POST | `/api/offers` | public active; OWNER/EMPLOYEE create |
+| GET | `/api/verify/imei/:serial` | public (genuine-product check) |
+| GET | `/api/audit` | OWNER (ERP audit log) |
+| POST | `/api/ai/support` | CUSTOMER (AI support chatbot) |
+| GET | `/api/analytics/summary` | OWNER / EMPLOYEE (sales/inventory/GST) |
+| POST/GET | `/api/stockists` | OWNER / EMPLOYEE (registry) |
+| POST | `/api/stockists/challans` | OWNER / EMPLOYEE+`challan.create` |
+| GET | `/api/stockists/challans` | OWNER / EMPLOYEE |
+| POST | `/api/stockists/challans/:id/receive` | OWNER / EMPLOYEE+`inventory.write` (GRN → stock) |
 | GET | `/api/cart` | CUSTOMER |
 | POST | `/api/cart/items` | CUSTOMER (add to cart) |
 | PATCH | `/api/cart/items/:productId` | CUSTOMER (qty; 0 removes) |

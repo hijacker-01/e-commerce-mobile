@@ -8,10 +8,14 @@ import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/order.dto';
 import { AuthUser } from '../auth/decorators/current-user.decorator';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /** Customer places an order; starts as REQUESTED, awaiting approval. */
   async create(customerId: string, dto: CreateOrderDto) {
@@ -69,6 +73,26 @@ export class OrdersService {
     });
   }
 
+  /** Single order with product details, scoped to the requesting user. */
+  async findOne(id: string, user: AuthUser) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            product: { select: { id: true, title: true, media: true } },
+          },
+        },
+        invoice: true,
+      },
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    if (user.role === Role.CUSTOMER && order.customerId !== user.id) {
+      throw new ForbiddenException('Not your order');
+    }
+    return order;
+  }
+
   /** Owner/employee approves or advances order status. */
   async updateStatus(orderId: string, status: OrderStatus, approver: AuthUser) {
     const order = await this.prisma.order.findUnique({
@@ -86,7 +110,7 @@ export class OrdersService {
       status === OrderStatus.APPROVED &&
       order.status === OrderStatus.REQUESTED;
 
-    return this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx) => {
       if (isFirstApproval) {
         for (const item of order.items) {
           const inv = await tx.inventory.findUnique({
@@ -102,6 +126,14 @@ export class OrdersService {
             data: { quantity: { decrement: item.quantity } },
           });
         }
+        // Award loyalty points: 1 point per ₹100 of order total.
+        const points = Math.floor(Number(order.total) / 100);
+        if (points > 0) {
+          await tx.user.update({
+            where: { id: order.customerId },
+            data: { loyaltyPoints: { increment: points } },
+          });
+        }
       }
 
       return tx.order.update({
@@ -113,5 +145,15 @@ export class OrdersService {
         },
       });
     });
+
+    // Notify the customer of the status change (best-effort, post-commit).
+    await this.notifications.create(
+      order.customerId,
+      'order',
+      `Order ${order.number} is now ${status}`,
+      undefined,
+    );
+
+    return updated;
   }
 }

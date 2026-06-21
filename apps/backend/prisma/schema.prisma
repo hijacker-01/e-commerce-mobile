@@ -99,6 +99,13 @@ enum OfferMessageStatus {
   COUNTERED
 }
 
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
 // ---------------------------------------------------------------------------
 // Users & access (RBAC: role + granular permission flags)
 // ---------------------------------------------------------------------------
@@ -113,6 +120,7 @@ model User {
   // Granular permission flags owner can toggle per employee, e.g.
   // ["product.write","order.approve","invoice.create","inventory.write"]
   permissions  String[] @default([])
+  loyaltyPoints Int     @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -127,6 +135,11 @@ model User {
   messages      Message[]
   exchanges     ExchangeRequest[]
   cart          Cart?
+  notifications Notification[]
+  wishlist      WishlistItem[]
+  returns       Return[]
+  auditLogs     AuditLog[]
+  questions     ProductQuestion[]
 }
 
 // ---------------------------------------------------------------------------
@@ -182,6 +195,10 @@ model Product {
   condition   ProductCondition @default(NEW)
   media       String[]         @default([]) // image/video URLs
   videoLinks  String[]         @default([]) // YouTube / Instagram embeds
+  // Variants of the same device (e.g. storage/colour) share a variantGroup;
+  // variantLabel is the human label for this specific variant ("256GB · Black").
+  variantGroup String?
+  variantLabel String?
   isActive    Boolean          @default(true)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -189,13 +206,31 @@ model Product {
   inventory        Inventory?
   orderItems       OrderItem[]
   reviews          Review[]
+  questions        ProductQuestion[]
   chatThreads      ChatThread[]
   specialLobbyItem SpecialLobbyItem?
   deviceKb         DeviceKB?
   cartItems        CartItem[]
+  wishlistItems    WishlistItem[]
 
   @@index([brand])
   @@index([categoryId])
+  @@index([variantGroup])
+}
+
+model ProductQuestion {
+  id         String    @id @default(cuid())
+  productId  String
+  product    Product   @relation(fields: [productId], references: [id])
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  question   String    @db.Text
+  answer     String?   @db.Text
+  answeredBy String?
+  createdAt  DateTime  @default(now())
+  answeredAt DateTime?
+
+  @@index([productId])
 }
 
 model Inventory {
@@ -206,6 +241,40 @@ model Inventory {
   reorderLevel Int      @default(2)
   location     String?
   updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Audit log
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String // e.g. "create", "status:APPROVED"
+  entity    String // e.g. "product", "order", "invoice"
+  entityId  String?
+  meta      Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([entity, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String // e.g. "order", "credit", "exchange"
+  title     String
+  body      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +298,32 @@ model CartItem {
   quantity  Int     @default(1)
 
   @@unique([cartId, productId])
+}
+
+// ---------------------------------------------------------------------------
+// Wishlist & returns (RMA)
+// ---------------------------------------------------------------------------
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+model Return {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     Order        @relation(fields: [orderId], references: [id])
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  reason    String
+  status    ReturnStatus @default(REQUESTED)
+  createdAt DateTime     @default(now())
 }
 
 // ---------------------------------------------------------------------------
@@ -293,6 +388,7 @@ model Order {
   items    OrderItem[]
   invoice  Invoice?
   challans Challan[]
+  returns  Return[]
 }
 
 model OrderItem {

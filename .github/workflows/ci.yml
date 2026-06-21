@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: ecom
+          POSTGRES_PASSWORD: ecom_pass
+          POSTGRES_DB: ecommerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ecom -d ecommerce"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      meilisearch:
+        image: getmeili/meilisearch:v1.7
+        env:
+          MEILI_MASTER_KEY: ci_meili_key
+          MEILI_ENV: development
+        ports:
+          - 7700:7700
+
+    env:
+      DATABASE_URL: postgresql://ecom:ecom_pass@localhost:5432/ecommerce?schema=public
+      JWT_ACCESS_SECRET: ci_access_secret
+      JWT_REFRESH_SECRET: ci_refresh_secret
+      MEILI_HOST: http://localhost:7700
+      MEILI_MASTER_KEY: ci_meili_key
+      PORT: '4000'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace apps/backend
+
+      - name: Type-check backend
+        run: npx tsc --noEmit -p apps/backend/tsconfig.json
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy --schema apps/backend/prisma/schema.prisma
+
+      - name: Seed database
+        run: npm run prisma:seed --workspace apps/backend
+
+      - name: Build backend
+        run: npm run build --workspace apps/backend
+
+      - name: Start API
+        run: |
+          node apps/backend/dist/src/main.js &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4000/api/products >/dev/null; then
+              echo "API up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "API failed to start"; exit 1
+
+      - name: Smoke test (REST)
+        run: npm run test:smoke --workspace apps/backend
+
+      - name: Chat WebSocket test
+        run: npm run test:chat --workspace apps/backend
+
+      - name: Build web
+        run: npm run build --workspace apps/web

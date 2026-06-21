@@ -15,6 +15,17 @@ import { CouponsModule } from './coupons/coupons.module';
 import { CreditModule } from './credit/credit.module';
 import { ExchangeModule } from './exchange/exchange.module';
 import { DirectoryModule } from './directory/directory.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { StockistsModule } from './stockists/stockists.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
+import { WishlistModule } from './wishlist/wishlist.module';
+import { ReturnsModule } from './returns/returns.module';
+import { HealthModule } from './health/health.module';
+import { SearchModule } from './search/search.module';
+import { AuditModule } from './audit/audit.module';
+import { OffersModule } from './offers/offers.module';
+import { VerifyModule } from './verify/verify.module';
 
 @Module({
   imports: [
@@ -34,6 +45,17 @@ import { DirectoryModule } from './directory/directory.module';
     CreditModule,
     ExchangeModule,
     DirectoryModule,
+    NotificationsModule,
+    AnalyticsModule,
+    StockistsModule,
+    LoyaltyModule,
+    WishlistModule,
+    ReturnsModule,
+    HealthModule,
+    SearchModule,
+    AuditModule,
+    OffersModule,
+    VerifyModule,
   ],
 })
 export class AppModule {}
