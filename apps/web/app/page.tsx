@@ -84,6 +84,7 @@ interface Facets {
   processors: string[];
   ram: string[];
   storage: string[];
+  camera: string[];
   priceMin: number;
   priceMax: number;
 }
@@ -92,6 +93,7 @@ interface Filters {
   processor: string;
   ram: string;
   storage: string;
+  camera: string;
   price: string; // bucket key like "20000-50000" or "100000-"
 }
 const EMPTY_FILTERS: Filters = {
@@ -99,6 +101,7 @@ const EMPTY_FILTERS: Filters = {
   processor: '',
   ram: '',
   storage: '',
+  camera: '',
   price: '',
 };
 const PRICE_BUCKETS: { key: string; label: string }[] = [
@@ -159,6 +162,7 @@ export default function Home() {
     if (f.processor) params.set('processor', f.processor);
     if (f.ram) params.set('ram', f.ram);
     if (f.storage) params.set('storage', f.storage);
+    if (f.camera) params.set('camera', f.camera);
     if (sortVal) params.set('sort', sortVal);
     if (f.price) {
       const [min, max] = f.price.split('-');
@@ -460,6 +464,23 @@ export default function Home() {
                     {facets.storage.map((s) => (
                       <option key={s} value={s}>
                         {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {facets.camera.length > 0 && (
+                <div>
+                  <label>Camera</label>
+                  <select
+                    value={filters.camera}
+                    onChange={(e) => setFilter('camera', e.target.value)}
+                  >
+                    <option value="">Any camera</option>
+                    {facets.camera.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
                       </option>
                     ))}
                   </select>

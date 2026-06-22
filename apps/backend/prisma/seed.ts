@@ -476,6 +476,25 @@ async function main() {
     }
   }
 
+  // Camera spec for phones (idempotent — merges into each product's specs JSON).
+  const cameraByModel: Record<string, string> = {
+    'Galaxy S24 Ultra': '200MP + 50MP + 12MP + 10MP',
+    'Galaxy A55': '50MP + 12MP + 5MP',
+  };
+  const phones = await prisma.product.findMany({
+    where: { categoryId: mobiles.id },
+  });
+  for (const p of phones) {
+    const specs = (p.specs ?? {}) as Record<string, unknown>;
+    const cam = cameraByModel[p.model];
+    if (cam && !specs.camera) {
+      await prisma.product.update({
+        where: { id: p.id },
+        data: { specs: { ...specs, camera: cam } as Prisma.InputJsonValue },
+      });
+    }
+  }
+
   // eslint-disable-next-line no-console
   console.log('Seed complete. Owner login -> phone: 9000000001, pw: password123');
 }

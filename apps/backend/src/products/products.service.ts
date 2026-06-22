@@ -63,6 +63,7 @@ export class ProductsService {
     const processors = new Set<string>();
     const ram = new Set<string>();
     const storage = new Set<string>();
+    const camera = new Set<string>();
     let priceMin = Infinity;
     let priceMax = 0;
     for (const p of products) {
@@ -71,6 +72,7 @@ export class ProductsService {
       if (s.processor) processors.add(String(s.processor));
       if (s.ram) ram.add(String(s.ram));
       if (s.storage) storage.add(String(s.storage));
+      if (s.camera) camera.add(String(s.camera));
       const price = Number(p.price);
       priceMin = Math.min(priceMin, price);
       priceMax = Math.max(priceMax, price);
@@ -81,6 +83,7 @@ export class ProductsService {
       processors: sort(processors),
       ram: sort(ram),
       storage: sort(storage),
+      camera: sort(camera),
       priceMin: Number.isFinite(priceMin) ? priceMin : 0,
       priceMax,
     };
@@ -183,6 +186,8 @@ export class ProductsService {
       specFilters.push({ specs: { path: ['ram'], equals: query.ram } });
     if (query.storage)
       specFilters.push({ specs: { path: ['storage'], equals: query.storage } });
+    if (query.camera)
+      specFilters.push({ specs: { path: ['camera'], equals: query.camera } });
     if (specFilters.length) where.AND = specFilters;
 
     const orderBy: Prisma.ProductOrderByWithRelationInput =
