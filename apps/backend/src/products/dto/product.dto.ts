@@ -96,6 +96,10 @@ export class ProductQueryDto {
   storage?: string;
 
   @IsOptional()
+  @IsString()
+  camera?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   minPrice?: number;
