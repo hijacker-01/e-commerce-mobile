@@ -19,6 +19,7 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState('');
   const [slot, setSlot] = useState('');
   const [method, setMethod] = useState('UPI');
+  const [coupon, setCoupon] = useState('');
   const [msg, setMsg] = useState<string | null>(null);
   const [saved, setSaved] = useState<string[]>([]);
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function CheckoutPage() {
     if (!cart || cart.items.length === 0) return;
     setMsg('Placing order…');
     try {
-      await api.post('/orders', {
+      const order = await api.post<{ id: string }>('/orders', {
         items: cart.items.map((i) => ({
           productId: i.productId,
           quantity: i.quantity,
@@ -49,9 +50,27 @@ export default function CheckoutPage() {
         paymentMethod: method,
       });
       if (address.trim()) saveAddress(address); // remember for next time
+
+      let couponNote = '';
+      if (coupon.trim()) {
+        try {
+          const updated = await api.post<{ discount: string }>(
+            '/coupons/apply',
+            { orderId: order.id, code: coupon.trim() },
+          );
+          couponNote = ` Coupon applied — ₹${Number(
+            updated.discount,
+          ).toLocaleString('en-IN')} off!`;
+        } catch (e) {
+          couponNote = ` (Coupon "${coupon.trim()}" not applied: ${
+            (e as Error).message
+          })`;
+        }
+      }
+
       await api.del('/cart');
-      setMsg('Order placed! Awaiting shop approval.');
-      setTimeout(() => router.push('/orders'), 1200);
+      setMsg(`Order placed! Awaiting shop approval.${couponNote}`);
+      setTimeout(() => router.push('/orders'), 1600);
     } catch (e) {
       setMsg((e as Error).message);
     }
@@ -118,9 +137,20 @@ export default function CheckoutPage() {
             <span>Total</span>
             <span>₹{cart.subtotal}</span>
           </div>
+
+          <label style={{ marginTop: 14 }}>Coupon code</label>
+          <input
+            placeholder="e.g. SAVE10"
+            value={coupon}
+            onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+          />
+          <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+            Applied to your order after you place it.
+          </p>
+
           <button
             className="success"
-            style={{ width: '100%', marginTop: 18 }}
+            style={{ width: '100%', marginTop: 14 }}
             onClick={placeOrder}
             disabled={cart.items.length === 0}
           >

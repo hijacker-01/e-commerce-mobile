@@ -57,6 +57,19 @@ export class StockistsService {
     });
   }
 
+  /** Challans addressed to the stockist linked to this user account. */
+  async myChallans(userId: string) {
+    const stockist = await this.prisma.stockist.findUnique({
+      where: { userId },
+    });
+    if (!stockist) return [];
+    return this.prisma.challan.findMany({
+      where: { stockistId: stockist.id },
+      orderBy: { createdAt: 'desc' },
+      include: { stockist: { select: { name: true } } },
+    });
+  }
+
   /** Mark an inbound challan RECEIVED → increment inventory (GRN). */
   async receive(challanId: string) {
     const challan = await this.prisma.challan.findUnique({

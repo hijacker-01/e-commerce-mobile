@@ -91,6 +91,9 @@ export default function Nav() {
         {role === 'OWNER' || role === 'EMPLOYEE' ? (
           <Link href="/owner" className={cls('/owner')}>Owner</Link>
         ) : null}
+        {role === 'STOCKIST' && (
+          <Link href="/stockist" className={cls('/stockist')}>My Challans</Link>
+        )}
         <span className="nav-spacer" />
         {authed && (
           <Link href="/notifications" className={cls('/notifications')}>

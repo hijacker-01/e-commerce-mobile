@@ -4,6 +4,7 @@ import { StockistsService } from './stockists.service';
 import { CreateStockistDto, CreateChallanDto } from './dto/stockist.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
+import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 
 // Stockist registry + inbound supply challans (owner/employee operated).
 @Roles(Role.OWNER, Role.EMPLOYEE)
@@ -19,6 +20,13 @@ export class StockistsController {
   @Get()
   list() {
     return this.stockists.list();
+  }
+
+  // Stockist's own portal — read-only view of challans addressed to them.
+  @Roles(Role.STOCKIST)
+  @Get('me/challans')
+  myChallans(@CurrentUser() user: AuthUser) {
+    return this.stockists.myChallans(user.id);
   }
 
   @RequirePermissions('challan.create')

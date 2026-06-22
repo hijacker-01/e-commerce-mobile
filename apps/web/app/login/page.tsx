@@ -88,7 +88,11 @@ export default function LoginPage() {
         );
       }
       router.push(
-        me.role === 'OWNER' || me.role === 'EMPLOYEE' ? '/owner' : '/',
+        me.role === 'OWNER' || me.role === 'EMPLOYEE'
+          ? '/owner'
+          : me.role === 'STOCKIST'
+            ? '/stockist'
+            : '/',
       );
     } catch (e) {
       setError((e as Error).message);

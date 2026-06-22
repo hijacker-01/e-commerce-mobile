@@ -495,6 +495,70 @@ async function main() {
     }
   }
 
+  // Stockist with a login account + a sample challan (for the stockist portal).
+  const stockistUser = await prisma.user.upsert({
+    where: { phone: '9000000002' },
+    update: {},
+    create: {
+      name: 'Metro Distributors',
+      phone: '9000000002',
+      role: Role.STOCKIST,
+      passwordHash,
+    },
+  });
+  const stockistRecord = await prisma.stockist.upsert({
+    where: { userId: stockistUser.id },
+    update: {},
+    create: {
+      userId: stockistUser.id,
+      name: 'Metro Distributors',
+      gstin: '27METRO1234Z1Z9',
+      contact: '9000000002',
+      address: 'Wholesale Market, Pune',
+    },
+  });
+  const challanCount = await prisma.challan.count({
+    where: { stockistId: stockistRecord.id },
+  });
+  if (challanCount === 0) {
+    const a55 = await prisma.product.findFirst({
+      where: { title: 'Samsung Galaxy A55 5G (8GB/128GB)' },
+    });
+    await prisma.challan.create({
+      data: {
+        number: `CH-${Date.now()}`,
+        type: 'INBOUND',
+        status: 'ISSUED',
+        stockistId: stockistRecord.id,
+        items: a55
+          ? [{ productId: a55.id, name: a55.title, qty: 10, rate: 28000 }]
+          : [],
+        totalAmount: new Prisma.Decimal(280000),
+      },
+    });
+    // eslint-disable-next-line no-console
+    console.log('Seeded stockist user (phone 9000000002) + sample challan.');
+  }
+
+  // Friendly demo coupons (idempotent by code).
+  const coupons = [
+    { code: 'SAVE10', type: 'PERCENT' as const, value: 10, minOrder: 0 },
+    { code: 'FLAT2000', type: 'FLAT' as const, value: 2000, minOrder: 30000 },
+  ];
+  for (const c of coupons) {
+    await prisma.coupon.upsert({
+      where: { code: c.code },
+      update: {},
+      create: {
+        code: c.code,
+        type: c.type,
+        value: new Prisma.Decimal(c.value),
+        minOrder: new Prisma.Decimal(c.minOrder),
+        isActive: true,
+      },
+    });
+  }
+
   // eslint-disable-next-line no-console
   console.log('Seed complete. Owner login -> phone: 9000000001, pw: password123');
 }
