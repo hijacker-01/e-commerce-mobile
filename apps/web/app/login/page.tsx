@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, setRole, setToken } from '../../lib/api';
+import { toast } from '../../lib/toast';
 
 interface AuthResp {
   accessToken: string;
@@ -13,12 +14,7 @@ interface Me {
 
 type RoleKey = 'CUSTOMER' | 'OWNER' | 'EMPLOYEE' | 'STOCKIST';
 
-const ROLES: {
-  key: RoleKey;
-  label: string;
-  icon: string;
-  desc: string;
-}[] = [
+const ROLES: { key: RoleKey; label: string; icon: string; desc: string }[] = [
   {
     key: 'CUSTOMER',
     label: 'Customer',
@@ -45,12 +41,20 @@ const ROLES: {
   },
 ];
 
+const HOME_FOR: Record<string, string> = {
+  OWNER: '/owner',
+  EMPLOYEE: '/owner',
+  STOCKIST: '/stockist',
+  CUSTOMER: '/',
+};
+
 export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState<RoleKey | null>(null);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -59,44 +63,55 @@ export default function LoginPage() {
   // Only customers can self-register; staff/stockist accounts are provisioned.
   const canRegister = selectedRole === 'CUSTOMER';
 
+  // Form is valid enough to submit (mirrors backend: password >= 6 on register).
+  const canSubmit =
+    mode === 'login'
+      ? phone.trim().length > 0 && password.length > 0
+      : name.trim().length > 0 &&
+        phone.trim().length > 0 &&
+        password.length >= 6;
+
   function chooseRole(key: RoleKey) {
     setSelectedRole(key);
     setMode('login');
     setError(null);
   }
 
+  function switchMode() {
+    setMode((m) => (m === 'login' ? 'register' : 'login'));
+    setError(null);
+  }
+
   async function submit() {
+    if (!canSubmit || loading) return;
     setError(null);
     setLoading(true);
     try {
       const resp =
         mode === 'login'
-          ? await api.post<AuthResp>('/auth/login', { phone, password })
+          ? await api.post<AuthResp>('/auth/login', {
+              phone: phone.trim(),
+              password,
+            })
           : await api.post<AuthResp>('/auth/register', {
-              name,
-              phone,
+              name: name.trim(),
+              phone: phone.trim(),
               password,
               role: 'CUSTOMER',
             });
       setToken(resp.accessToken);
       const me = await api.get<Me>('/auth/me');
       setRole(me.role);
-      // Warn if the account's real role differs from the chosen portal.
+      // If the account's real role differs from the chosen portal, let them
+      // know (as a toast that survives navigation) and route by the real role.
       if (selectedRole && me.role !== selectedRole) {
-        setError(
-          `This account is a ${me.role}. Signing you in to your ${me.role} area.`,
-        );
+        toast(`Signed in as ${me.role} — taking you to your area.`, 'info');
+      } else {
+        toast(mode === 'login' ? 'Welcome back!' : 'Account created!');
       }
-      router.push(
-        me.role === 'OWNER' || me.role === 'EMPLOYEE'
-          ? '/owner'
-          : me.role === 'STOCKIST'
-            ? '/stockist'
-            : '/',
-      );
+      router.push(HOME_FOR[me.role] ?? '/');
     } catch (e) {
       setError((e as Error).message);
-    } finally {
       setLoading(false);
     }
   }
@@ -117,7 +132,9 @@ export default function LoginPage() {
               className="role-card"
               onClick={() => chooseRole(r.key)}
             >
-              <span className="role-icon">{r.icon}</span>
+              <span className="role-icon" aria-hidden="true">
+                {r.icon}
+              </span>
               <strong>{r.label}</strong>
               <span className="muted" style={{ fontSize: 13 }}>
                 {r.desc}
@@ -125,6 +142,11 @@ export default function LoginPage() {
             </button>
           ))}
         </div>
+        <p className="muted" style={{ textAlign: 'center', marginTop: 24 }}>
+          <button className="link-inline" onClick={() => router.push('/')}>
+            Continue browsing without signing in →
+          </button>
+        </p>
       </main>
     );
   }
@@ -139,7 +161,7 @@ export default function LoginPage() {
             SAMSUNG·Store
           </div>
           <h2>
-            {role?.icon} {role?.label} portal
+            <span aria-hidden="true">{role?.icon}</span> {role?.label} portal
           </h2>
           <ul>
             <li>⚡ AI-verified authentic devices</li>
@@ -163,59 +185,86 @@ export default function LoginPage() {
               ? `Log in as ${role?.label}`
               : 'Create your account'}
           </h1>
-          {mode === 'register' && (
-            <>
-              <label>Name</label>
-              <input
-                value={name}
-                autoComplete="name"
-                onChange={(e) => setName(e.target.value)}
-              />
-            </>
-          )}
-          <label>Phone</label>
-          <input
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && submit()}
-          />
-          <label>Password</label>
-          <input
-            type="password"
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && submit()}
-          />
-          {error && (
-            <p className="error" style={{ marginTop: 10 }}>
-              {error}
-            </p>
-          )}
-          <button
-            style={{ marginTop: 18, width: '100%' }}
-            onClick={submit}
-            disabled={loading}
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+            noValidate
           >
-            {loading ? '…' : mode === 'login' ? 'Log in' : 'Sign up'}
-          </button>
+            {mode === 'register' && (
+              <>
+                <label htmlFor="name">Name</label>
+                <input
+                  id="name"
+                  value={name}
+                  autoComplete="name"
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </>
+            )}
+
+            <label htmlFor="phone">Phone</label>
+            <input
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
+              maxLength={15}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ''))}
+            />
+
+            <label htmlFor="password">Password</label>
+            <div className="pass-wrap">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete={
+                  mode === 'login' ? 'current-password' : 'new-password'
+                }
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                className="pass-toggle"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {mode === 'register' && (
+              <p className="field-hint">At least 6 characters.</p>
+            )}
+
+            {error && (
+              <p className="error" role="alert" style={{ marginTop: 10 }}>
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              style={{ marginTop: 18, width: '100%' }}
+              disabled={loading || !canSubmit}
+            >
+              {loading
+                ? 'Signing in…'
+                : mode === 'login'
+                  ? 'Log in'
+                  : 'Sign up'}
+            </button>
+          </form>
 
           {canRegister ? (
             <p className="muted" style={{ marginTop: 16 }}>
               {mode === 'login' ? 'No account?' : 'Have an account?'}{' '}
-              <a
-                style={{
-                  color: 'var(--accent)',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                }}
-                onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-              >
+              <button className="link-inline" onClick={switchMode}>
                 {mode === 'login' ? 'Register' : 'Log in'}
-              </a>
+              </button>
             </p>
           ) : (
             <p className="muted" style={{ marginTop: 16, fontSize: 13 }}>
