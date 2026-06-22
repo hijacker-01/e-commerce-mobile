@@ -71,6 +71,38 @@ function PriceTag({ price, mrp }: { price: string; mrp?: string | null }) {
   );
 }
 
+// Decorative bento image card: real product photo as a clickable background.
+function CardImage({
+  className,
+  product,
+  router,
+  children,
+}: {
+  className: string;
+  product?: Product;
+  router: ReturnType<typeof useRouter>;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={className}
+      style={{ cursor: product ? 'pointer' : 'default' }}
+      onClick={() => product && router.push(`/product/${product.id}`)}
+    >
+      {product?.media?.[0] && (
+        <Image
+          src={product.media[0]}
+          alt={product.title}
+          fill
+          sizes="(max-width: 980px) 100vw, 360px"
+          style={{ objectFit: 'cover' }}
+        />
+      )}
+      {children}
+    </section>
+  );
+}
+
 interface LobbyItem {
   id: string;
   product: Product;
@@ -128,7 +160,10 @@ export default function Home() {
   const [visible, setVisible] = useState(8);
   const [compare, setCompare] = useState<string[]>([]);
   const [recent, setRecent] = useState<RecentItem[]>([]);
+  const [cartCount, setCartCount] = useState(0);
+  const [swatch, setSwatch] = useState(0);
   const isCustomer = getRole() === 'CUSTOMER';
+  const authed = !!getToken();
   const router = useRouter();
   const PAGE = 8;
 
@@ -211,6 +246,10 @@ export default function Home() {
         .get<{ product: { id: string } }[]>('/wishlist')
         .then((items) => setWishlist(new Set(items.map((w) => w.product.id))))
         .catch(() => {});
+      api
+        .get<{ items: unknown[] }>('/cart')
+        .then((c) => setCartCount(c.items?.length ?? 0))
+        .catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -272,58 +311,242 @@ export default function Home() {
     }
     try {
       await api.post('/cart/items', { productId: id, quantity: 1 });
+      setCartCount((c) => c + 1);
       toast('Added to cart');
     } catch (e) {
       toast((e as Error).message, 'error');
     }
   }
 
+  function scrollToShop() {
+    document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // Real product media to dress the decorative bento cards.
+  const withMedia = products.filter((p) => p.media?.[0]);
+  const heroProduct = lobby[0]?.product ?? withMedia[0] ?? products[0];
+  const bigProduct = withMedia.find((p) => p.id !== heroProduct?.id);
+  const newgenProduct = withMedia.find(
+    (p) => p.id !== heroProduct?.id && p.id !== bigProduct?.id,
+  );
+  const promoProduct = withMedia.find(
+    (p) =>
+      p.id !== heroProduct?.id &&
+      p.id !== bigProduct?.id &&
+      p.id !== newgenProduct?.id,
+  );
+  const moreThumbs = withMedia.slice(0, 3);
+  const SWATCHES = ['#1428a0', '#111418', '#7c5cff', '#15803d', '#e9dcc3'];
+
   return (
     <main>
-      {/* Hero */}
-      <section className="hero">
-        <h1>The next era of smart electronics.</h1>
-        <p>
-          Discover flagship devices, AI-verified authenticity, and instant
-          bargaining — all in one premium marketplace.
-        </p>
-        <div className="hero-cta">
-          <a href="#shop" className="btn btn-light">
-            Shop now
-          </a>
-          <Link href="/services" className="btn btn-ghost-light">
-            Explore services
-          </Link>
+      {/* ===== Bento stage ===== */}
+      <div className="topbar">
+        <div className="logo">
+          <span className="logo-mark">S</span>
+          <span className="logo-name">
+            SAMSUNG<span className="dot">·</span>Store
+          </span>
         </div>
-        {offers.length > 0 && (
-          <div style={{ marginTop: 28 }}>
-            <span className="chip" style={{ background: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.3)', color: '#fff' }}>
-              🎉 Live offers · {offers.map((o) => o.title).join(' · ')}
-            </span>
-          </div>
-        )}
-      </section>
+        <div className="tb-search">
+          <input
+            placeholder="Search devices, brands, specs…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && scrollToShop()}
+          />
+          <button
+            className="icon-btn"
+            aria-label="Search"
+            onClick={scrollToShop}
+          >
+            ⌕
+          </button>
+        </div>
+        <div className="top-actions">
+          <button
+            className="icon-btn"
+            aria-label="Wishlist"
+            onClick={() => router.push('/wishlist')}
+          >
+            ♡
+            {wishlist.size > 0 && (
+              <span className="count-dot">{wishlist.size}</span>
+            )}
+          </button>
+          <button
+            className="icon-btn"
+            aria-label="Cart"
+            onClick={() => router.push('/cart')}
+          >
+            🛍
+            {cartCount > 0 && <span className="count-dot">{cartCount}</span>}
+          </button>
+          <button
+            className="user-pill"
+            onClick={() => router.push(authed ? '/orders' : '/login')}
+          >
+            {authed ? 'My account' : 'Sign in'}
+            <span className="avatar">{authed ? 'ME' : '↗'}</span>
+          </button>
+        </div>
+      </div>
 
-      {lobby.length > 0 && (
-        <section className="section">
-          <div className="section-head">
-            <h2>Owner&apos;s picks</h2>
-            <span className="muted">Hand-selected this week</span>
-          </div>
-          <div className="grid">
-            {lobby.map((l) => (
-              <Link key={l.id} href={`/product/${l.product.id}`} className="card">
-                <Thumb src={l.product.media?.[0]} alt={l.product.title} />
-                <strong>{l.product.title}</strong>
-                <div className="muted">
-                  {l.product.brand} {l.product.model}
+      <div className="bento">
+        {/* Left column */}
+        <div className="bcol">
+          <section className="bcard vhero">
+            <div className="hero-body">
+              <span className="eyebrow-pill">
+                <span className="spark">✦</span> AI-verified marketplace
+              </span>
+              <h1>The next era of smart electronics.</h1>
+              <div className="hero-feature">
+                <span className="hero-num">01</span>
+                <span className="hero-arrow">→</span>
+                <div>
+                  <h4>Compare with AI</h4>
+                  <p>
+                    Bargain in chat, verify genuine IMEI, and pay with no-cost
+                    EMI — before you buy.
+                  </p>
                 </div>
-                <PriceTag price={l.product.price} mrp={l.product.mrp} />
-              </Link>
-            ))}
+              </div>
+              <button className="cta" onClick={scrollToShop}>
+                Shop all devices
+                <span className="cta-circ">↗</span>
+              </button>
+              <div className="hero-social">
+                <span>Follow us on</span>
+                <span className="soc">f</span>
+                <span className="soc">in</span>
+                <span className="soc">X</span>
+                <span className="soc">◎</span>
+              </div>
+            </div>
+            <div className="hero-media">
+              {heroProduct?.media?.[0] && (
+                <Image
+                  src={heroProduct.media[0]}
+                  alt={heroProduct.title}
+                  fill
+                  sizes="(max-width: 980px) 100vw, 360px"
+                  style={{ objectFit: 'cover' }}
+                  priority
+                />
+              )}
+              <span className="dot-deco d1" />
+              <span className="dot-deco d2" />
+              <span className="dot-deco d3" />
+              <span className="dot-deco d4" />
+            </div>
+          </section>
+
+          <div className="bottom-row">
+            <section className="bcard more-card">
+              <div className="card-head">
+                <div>
+                  <h3>More devices</h3>
+                  <div className="sub">{products.length}+ items in stock</div>
+                </div>
+                <span style={{ color: 'var(--danger)' }}>♥</span>
+              </div>
+              <div className="thumbs">
+                {moreThumbs.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/product/${p.id}`}
+                    className="mthumb"
+                    aria-label={p.title}
+                  >
+                    <Image
+                      src={p.media![0]}
+                      alt={p.title}
+                      fill
+                      sizes="90px"
+                      style={{ objectFit: 'contain', padding: 6 }}
+                    />
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section className="bcard stat-card">
+              <div className="big">5M+</div>
+              <div className="lab">happy customers across India</div>
+              <div className="rate">
+                <span className="star">★</span> 4.6 average rating
+              </div>
+            </section>
+
+            <CardImage
+              className="bcard promo-card"
+              product={promoProduct}
+              router={router}
+            >
+              <span className="pbadge">♥ Popular</span>
+              <span className="pstar">★ 4.7</span>
+              <div className="overlay" />
+              <div className="ilabel">
+                <div className="s">Just dropped</div>
+                <div className="t">
+                  {promoProduct ? promoProduct.title : 'New arrivals'}
+                </div>
+              </div>
+            </CardImage>
           </div>
-        </section>
-      )}
+        </div>
+
+        {/* Right column */}
+        <div className="bcol">
+          <section className="bcard colors-card">
+            <div className="card-head">
+              <h3>Popular colors</h3>
+            </div>
+            <div className="swatches">
+              {SWATCHES.map((c, i) => (
+                <button
+                  key={c}
+                  className={`swatch ${i === swatch ? 'active' : ''}`}
+                  style={{ background: c }}
+                  aria-label={`Colour ${i + 1}`}
+                  onClick={() => setSwatch(i)}
+                />
+              ))}
+            </div>
+          </section>
+
+          <CardImage
+            className="bcard img-card newgen"
+            product={newgenProduct}
+            router={router}
+          >
+            <span className="tag">
+              New gen
+              <span className="s">{newgenProduct?.brand ?? 'Audio'}</span>
+            </span>
+            <span className="arrow-circ">↗</span>
+            <div className="overlay" />
+          </CardImage>
+
+          <CardImage
+            className="bcard img-card bigimg"
+            product={bigProduct}
+            router={router}
+          >
+            <span className="arrow-circ">↗</span>
+            <div className="overlay" />
+            <div className="ilabel">
+              <div className="t">{bigProduct?.title ?? 'Flagship'}</div>
+              <div className="s">
+                {bigProduct
+                  ? `${bigProduct.brand} ${bigProduct.model}`
+                  : 'Premium build'}
+              </div>
+            </div>
+          </CardImage>
+        </div>
+      </div>
 
       {recent.length > 0 && (
         <section className="section">
@@ -342,9 +565,13 @@ export default function Home() {
         </section>
       )}
 
-      <section className="section" id="shop">
-        <div className="section-head">
+      <section className="shop" id="shop">
+        <div className="section-head" style={{ marginBottom: 16 }}>
           <h2>Shop electronics</h2>
+          <span className="muted">
+            {loading ? 'Loading…' : `${products.length} devices`}
+            {q ? ` · results for “${q}”` : ''}
+          </span>
         </div>
 
         {categories.length > 0 && (
@@ -368,12 +595,6 @@ export default function Home() {
         )}
 
         <div className="row" style={{ margin: '0 0 16px' }}>
-          <input
-            placeholder="Search devices…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && load()}
-          />
           <button
             className={`secondary filter-toggle ${showFilters ? 'open' : ''}`}
             onClick={() => setShowFilters((v) => !v)}

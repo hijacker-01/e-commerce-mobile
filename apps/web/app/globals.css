@@ -1,22 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import './voltora-bento.css';
+
 :root {
-  /* Samsung-inspired light design system */
+  /* Voltora design system — framed glass on soft gradient */
   --bg: #ffffff;
   --bg-soft: #f5f6f8;
   --panel: #ffffff;
   --border: #e6e8ec;
+  --border-strong: #d7dbe2;
   --text: #111418;
   --muted: #6b7280;
-  --accent: #1428a0; /* Samsung blue */
+  --placeholder: #9aa1ad;
+  --accent: #1428a0; /* deep electric blue */
   --accent-hover: #0d1f7a;
   --accent2: #1428a0;
+  --brand-500: #2a3fd4;
+  --brand-900: #0a1560;
+  --brand-tint: rgba(20, 40, 160, 0.06);
+  --brand-ring: rgba(20, 40, 160, 0.12);
   --success: #15803d;
   --danger: #dc2626;
+  --star: #f59e0b;
   --shadow-sm: 0 1px 2px rgba(17, 20, 24, 0.06);
   --shadow-md: 0 6px 24px rgba(17, 20, 24, 0.08);
   --shadow-lg: 0 18px 48px rgba(17, 20, 24, 0.14);
   --radius: 16px;
   --radius-sm: 10px;
+  --radius-md: 12px;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --thumb-grad: linear-gradient(160deg, #f3f5f9 0%, #e9edf5 100%);
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* ★ Bento theme additions ★ */
+  --app-gradient:
+    radial-gradient(120% 90% at 15% 0%, #eef2fb 0%, transparent 55%),
+    radial-gradient(120% 90% at 100% 100%, #e7efe9 0%, transparent 50%),
+    linear-gradient(165deg, #eceff5 0%, #e3e8f0 100%);
+  --stage-fill: rgba(255, 255, 255, 0.5);
+  --stage-border: rgba(255, 255, 255, 0.7);
 }
 
 * {
@@ -29,13 +50,13 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--app-gradient);
+  background-attachment: fixed;
   color: var(--text);
-  font-family:
-    'SamsungSharpSans', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  padding: 18px;
 }
 
 a {
@@ -63,24 +84,34 @@ h3 {
 
 .container {
   max-width: 1180px;
-  margin: 0 auto;
-  padding: 28px 24px 64px;
+  margin: 18px auto 0;
+  padding: 28px 28px 40px;
+  background: var(--stage-fill);
+  border: 1px solid var(--stage-border);
+  border-radius: 30px;
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
-/* ---------- Top navigation ---------- */
+/* ---------- Top navigation (floating frosted pill) ---------- */
 .nav {
   position: sticky;
-  top: 0;
+  top: 18px;
   z-index: 50;
   display: flex;
   gap: 6px;
   align-items: center;
-  padding: 0 28px;
+  padding: 0 16px 0 18px;
   min-height: 60px;
+  max-width: 1180px;
+  margin: 0 auto;
   background: rgba(255, 255, 255, 0.82);
   backdrop-filter: saturate(180%) blur(14px);
   -webkit-backdrop-filter: saturate(180%) blur(14px);
-  border-bottom: 1px solid var(--border);
+  border: 1px solid var(--stage-border);
+  border-radius: 22px;
+  box-shadow: var(--shadow-sm);
 }
 .nav a {
   color: var(--text);
