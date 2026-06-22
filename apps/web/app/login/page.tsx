@@ -11,7 +11,42 @@ interface Me {
   role: string;
 }
 
+type RoleKey = 'CUSTOMER' | 'OWNER' | 'EMPLOYEE' | 'STOCKIST';
+
+const ROLES: {
+  key: RoleKey;
+  label: string;
+  icon: string;
+  desc: string;
+}[] = [
+  {
+    key: 'CUSTOMER',
+    label: 'Customer',
+    icon: '🛍️',
+    desc: 'Shop devices, track orders, bargain & exchange',
+  },
+  {
+    key: 'OWNER',
+    label: 'Owner',
+    icon: '👑',
+    desc: 'Manage store, orders, inventory & staff',
+  },
+  {
+    key: 'EMPLOYEE',
+    label: 'Employee',
+    icon: '🧑‍💼',
+    desc: 'Handle orders, returns & customer Q&A',
+  },
+  {
+    key: 'STOCKIST',
+    label: 'Stockist',
+    icon: '📦',
+    desc: 'Supply inventory via challans',
+  },
+];
+
 export default function LoginPage() {
+  const [selectedRole, setSelectedRole] = useState<RoleKey | null>(null);
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -19,6 +54,16 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const role = ROLES.find((r) => r.key === selectedRole);
+  // Only customers can self-register; staff/stockist accounts are provisioned.
+  const canRegister = selectedRole === 'CUSTOMER';
+
+  function chooseRole(key: RoleKey) {
+    setSelectedRole(key);
+    setMode('login');
+    setError(null);
+  }
 
   async function submit() {
     setError(null);
@@ -36,7 +81,15 @@ export default function LoginPage() {
       setToken(resp.accessToken);
       const me = await api.get<Me>('/auth/me');
       setRole(me.role);
-      router.push(me.role === 'OWNER' || me.role === 'EMPLOYEE' ? '/owner' : '/');
+      // Warn if the account's real role differs from the chosen portal.
+      if (selectedRole && me.role !== selectedRole) {
+        setError(
+          `This account is a ${me.role}. Signing you in to your ${me.role} area.`,
+        );
+      }
+      router.push(
+        me.role === 'OWNER' || me.role === 'EMPLOYEE' ? '/owner' : '/',
+      );
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -44,6 +97,35 @@ export default function LoginPage() {
     }
   }
 
+  // ---- Step 1: choose a role ----
+  if (!selectedRole) {
+    return (
+      <main>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div className="eyebrow">SAMSUNG·Store</div>
+          <h1>Sign in to continue</h1>
+          <p className="muted">Choose how you want to sign in.</p>
+        </div>
+        <div className="role-grid">
+          {ROLES.map((r) => (
+            <button
+              key={r.key}
+              className="role-card"
+              onClick={() => chooseRole(r.key)}
+            >
+              <span className="role-icon">{r.icon}</span>
+              <strong>{r.label}</strong>
+              <span className="muted" style={{ fontSize: 13 }}>
+                {r.desc}
+              </span>
+            </button>
+          ))}
+        </div>
+      </main>
+    );
+  }
+
+  // ---- Step 2: login / register for the chosen role ----
   return (
     <main>
       <div className="auth-wrap">
@@ -53,9 +135,7 @@ export default function LoginPage() {
             SAMSUNG·Store
           </div>
           <h2>
-            {mode === 'login'
-              ? 'Welcome back.'
-              : 'Join the next era of smart shopping.'}
+            {role?.icon} {role?.label} portal
           </h2>
           <ul>
             <li>⚡ AI-verified authentic devices</li>
@@ -67,8 +147,17 @@ export default function LoginPage() {
 
         {/* Form */}
         <div className="auth-form">
+          <button
+            className="link-btn"
+            onClick={() => setSelectedRole(null)}
+            style={{ marginBottom: 10 }}
+          >
+            ← Choose a different role
+          </button>
           <h1 style={{ fontSize: 28 }}>
-            {mode === 'login' ? 'Log in' : 'Create account'}
+            {mode === 'login'
+              ? `Log in as ${role?.label}`
+              : 'Create your account'}
           </h1>
           {mode === 'register' && (
             <>
@@ -109,18 +198,31 @@ export default function LoginPage() {
           >
             {loading ? '…' : mode === 'login' ? 'Log in' : 'Sign up'}
           </button>
-          <p className="muted" style={{ marginTop: 16 }}>
-            {mode === 'login' ? 'No account?' : 'Have an account?'}{' '}
-            <a
-              style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 600 }}
-              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-            >
-              {mode === 'login' ? 'Register' : 'Log in'}
-            </a>
-          </p>
-          <p className="muted" style={{ fontSize: 12 }}>
-            Seeded owner — phone 9000000001 / password123
-          </p>
+
+          {canRegister ? (
+            <p className="muted" style={{ marginTop: 16 }}>
+              {mode === 'login' ? 'No account?' : 'Have an account?'}{' '}
+              <a
+                style={{
+                  color: 'var(--accent)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+                onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+              >
+                {mode === 'login' ? 'Register' : 'Log in'}
+              </a>
+            </p>
+          ) : (
+            <p className="muted" style={{ marginTop: 16, fontSize: 13 }}>
+              {role?.label} accounts are provisioned by the store owner.
+            </p>
+          )}
+          {selectedRole === 'OWNER' && (
+            <p className="muted" style={{ fontSize: 12 }}>
+              Seeded owner — phone 9000000001 / password123
+            </p>
+          )}
         </div>
       </div>
     </main>
