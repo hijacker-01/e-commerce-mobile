@@ -5,7 +5,7 @@ import Toaster from '../components/Toaster';
 import CompareBar from '../components/CompareBar';
 
 export const metadata = {
-  title: 'SAMSUNG·Store — Smart Electronics',
+  title: 'Voltora·Store — Smart Electronics',
   description: 'Smart electronics marketplace with AI device intelligence',
 };
 

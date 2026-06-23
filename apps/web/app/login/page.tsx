@@ -121,7 +121,7 @@ export default function LoginPage() {
     return (
       <main>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div className="eyebrow">SAMSUNG·Store</div>
+          <div className="eyebrow">Voltora·Store</div>
           <h1>Sign in to continue</h1>
           <p className="muted">Choose how you want to sign in.</p>
         </div>
@@ -158,7 +158,7 @@ export default function LoginPage() {
         {/* Brand panel */}
         <div className="auth-panel">
           <div className="eyebrow" style={{ color: 'rgba(255,255,255,0.8)' }}>
-            SAMSUNG·Store
+            Voltora·Store
           </div>
           <h2>
             <span aria-hidden="true">{role?.icon}</span> {role?.label} portal

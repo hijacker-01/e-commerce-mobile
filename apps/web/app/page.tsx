@@ -343,9 +343,9 @@ export default function Home() {
       {/* ===== Bento stage ===== */}
       <div className="topbar">
         <div className="logo">
-          <span className="logo-mark">S</span>
+          <span className="logo-mark">V</span>
           <span className="logo-name">
-            SAMSUNG<span className="dot">·</span>Store
+            Voltora<span className="dot">·</span>Store
           </span>
         </div>
         <div className="tb-search">

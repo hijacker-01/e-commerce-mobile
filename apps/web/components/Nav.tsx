@@ -53,7 +53,7 @@ export default function Nav() {
   return (
     <nav className="nav">
       <Link href="/" className="brand">
-        SAMSUNG<span style={{ color: 'var(--accent)' }}>·</span>Store
+        Voltora<span style={{ color: 'var(--accent)' }}>·</span>Store
       </Link>
       <button
         className="nav-toggle"
