@@ -1,0 +1,448 @@
+/* ============================================================
+   Voltora auth page (scoped under .vlogin) — role select → sign in / up
+   ============================================================ */
+.vlogin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 20px;
+}
+.vlogin .brandbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--stage-border);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border-radius: 999px;
+  padding: 8px 18px 8px 10px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+.vlogin .lmark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.04em;
+}
+.vlogin .lname {
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+.vlogin .lname .dot {
+  color: var(--accent);
+}
+
+.vlogin .stagebox {
+  width: 100%;
+  max-width: 480px;
+}
+.vlogin .panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='240'%20viewBox='0%200%20240%20240'%3E%3Cg%20fill='none'%20stroke='%231428a0'%20stroke-width='1.2'%20opacity='0.10'%3E%3Cpath%20d='M20%2040%20H90%20V100%20H160'/%3E%3Cpath%20d='M210%2030%20V110%20H140'/%3E%3Cpath%20d='M30%20190%20H110%20V130'/%3E%3Cpath%20d='M200%20180%20H130%20V220'/%3E%3Cpath%20d='M120%200%20V60'/%3E%3C/g%3E%3Cg%20fill='%231428a0'%20opacity='0.16'%3E%3Ccircle%20cx='90'%20cy='100'%20r='3.4'/%3E%3Ccircle%20cx='160'%20cy='100'%20r='3.4'/%3E%3Ccircle%20cx='140'%20cy='110'%20r='3.4'/%3E%3Ccircle%20cx='110'%20cy='130'%20r='3.4'/%3E%3Ccircle%20cx='130'%20cy='220'%20r='3.4'/%3E%3Ccircle%20cx='120'%20cy='60'%20r='3.4'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(170deg, #ffffff 0%, #f3f6fd 100%);
+  background-size: 240px 240px, cover;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  padding: 32px 30px 28px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 24px 50px rgba(17, 20, 24, 0.12);
+}
+
+/* Role screen header */
+.vlogin .welcome {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0;
+  position: relative;
+  background: linear-gradient(180deg, #b4bac4 0%, #868d9a 52%, #6b7280 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7))
+    drop-shadow(0 3px 4px rgba(17, 20, 24, 0.26));
+}
+.vlogin .sub {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 6px 0 0;
+}
+.vlogin .hero-emoji {
+  position: absolute;
+  top: 26px;
+  right: 30px;
+  font-size: 40px;
+  z-index: 2;
+  filter: drop-shadow(0 0 14px rgba(42, 63, 212, 0.5))
+    drop-shadow(0 8px 14px rgba(17, 20, 24, 0.2));
+  animation: vfloaty 3.4s var(--ease) infinite;
+}
+@keyframes vfloaty {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
+
+/* Role grid */
+.vlogin .vrole-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 26px 0 16px;
+}
+.vlogin .vrole {
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 14px 16px;
+  font-family: var(--font-sans);
+  box-shadow: 0 6px 16px rgba(17, 20, 24, 0.08);
+  transition: transform var(--dur, 0.18s) var(--ease),
+    box-shadow var(--dur, 0.18s) var(--ease),
+    border-color var(--dur, 0.18s) var(--ease);
+}
+.vlogin .vrole:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(17, 20, 24, 0.13);
+}
+.vlogin .vrole.active {
+  background: linear-gradient(180deg, #eff4ff 0%, #e2ebff 100%);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(20, 40, 160, 0.55),
+    0 0 24px rgba(42, 99, 235, 0.38), 0 12px 26px rgba(20, 40, 160, 0.18);
+}
+.vlogin .r-ic {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
+  margin-bottom: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 10px rgba(17, 20, 24, 0.08), inset 0 1px 0 #fff;
+  overflow: hidden;
+}
+.vlogin .vrole.active .r-ic {
+  border-color: rgba(20, 40, 160, 0.35);
+}
+.vlogin .r-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+.vlogin .r-desc {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin-top: 3px;
+  line-height: 1.45;
+}
+.vlogin .r-check {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.vlogin .vrole.active .r-check {
+  display: flex;
+}
+
+/* Primary gradient button */
+.vlogin .btn-primary {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 14px;
+  background: linear-gradient(180deg, #2a3fd4 0%, var(--accent) 55%, #0d1f7a 100%);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 15px;
+  transition: filter var(--dur, 0.18s) var(--ease),
+    transform 0.12s var(--ease);
+  box-shadow: 0 10px 24px rgba(20, 40, 160, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.vlogin .btn-primary:hover {
+  filter: brightness(1.06);
+}
+.vlogin .btn-primary:active {
+  transform: scale(0.98);
+}
+.vlogin .btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.vlogin .foot {
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--muted);
+  margin-top: 22px;
+}
+.vlogin .foot a,
+.vlogin .linkish {
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+.vlogin .foot a:hover,
+.vlogin .linkish:hover {
+  color: var(--accent-hover);
+}
+
+/* ---------- Airy sign in / sign up ---------- */
+.vlogin .airy {
+  position: relative;
+  background: linear-gradient(180deg, #eef0f4 0%, #e7ecf6 45%, #dbe6fb 100%);
+  border-radius: 26px;
+  padding: 34px 28px 26px;
+  box-shadow: 0 30px 70px rgba(17, 20, 24, 0.1);
+}
+.vlogin .airy-back {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--text);
+  font-size: 17px;
+  cursor: pointer;
+  transition: background var(--dur, 0.18s) var(--ease), transform 0.12s var(--ease);
+}
+.vlogin .airy-back:hover {
+  background: #fff;
+  border-color: var(--text);
+}
+.vlogin .airy-back:active {
+  transform: scale(0.94);
+}
+.vlogin .airy-h {
+  text-align: center;
+  font-size: clamp(28px, 7vw, 38px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #3a3f47;
+  margin: 12px 0 6px;
+}
+.vlogin .airy-sub {
+  text-align: center;
+  color: var(--muted);
+  font-size: 15px;
+  margin: 0 0 26px;
+}
+.vlogin .airy-sub b {
+  color: var(--accent);
+  font-weight: 700;
+}
+.vlogin .airy-field {
+  margin-bottom: 18px;
+}
+.vlogin .airy-field > label {
+  display: block;
+  font-size: 14px;
+  color: #9aa1ad;
+  margin: 0 0 8px 8px;
+  font-weight: 500;
+}
+.vlogin .airy-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.vlogin .airy-input input {
+  width: 100%;
+  border: none;
+  outline: none;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: var(--text);
+  background: #fbfcfe;
+  border-radius: 26px;
+  padding: 18px 22px;
+  box-shadow: 0 6px 16px rgba(17, 20, 24, 0.06),
+    inset 0 0 0 1px rgba(17, 20, 24, 0.04);
+  transition: box-shadow var(--dur, 0.18s) var(--ease);
+}
+.vlogin .airy-input input::placeholder {
+  color: #aab0bb;
+}
+.vlogin .airy-input input:focus {
+  box-shadow: 0 8px 20px rgba(20, 40, 160, 0.15), inset 0 0 0 1.6px var(--accent);
+}
+.vlogin .airy-input .eye {
+  position: absolute;
+  right: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9aa1ad;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px;
+}
+.vlogin .airy-input .eye:hover {
+  color: var(--text);
+}
+.vlogin .airy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 6px 20px;
+}
+.vlogin .remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.vlogin .remember input {
+  display: none;
+}
+.vlogin .checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  background: #fff;
+  transition: all var(--dur, 0.18s) var(--ease);
+}
+.vlogin .remember input:checked + .checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.vlogin .forgot {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+.vlogin .forgot:hover {
+  color: var(--accent-hover);
+}
+.vlogin .airy-submit {
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  border-radius: 28px;
+  padding: 17px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 17px;
+  color: #fff;
+  background: linear-gradient(180deg, #2a3fd4 0%, #1428a0 60%, #0f1f86 100%);
+  box-shadow: 0 14px 30px rgba(20, 40, 160, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  margin: 6px 0 18px;
+  transition: filter var(--dur, 0.18s) var(--ease), transform 0.12s var(--ease);
+}
+.vlogin .airy-submit:hover {
+  filter: brightness(1.07);
+}
+.vlogin .airy-submit:active {
+  transform: scale(0.985);
+}
+.vlogin .airy-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.vlogin .airy-social {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.vlogin .airy-soc {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 26px;
+  padding: 14px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background var(--dur, 0.18s) var(--ease), transform 0.12s var(--ease);
+}
+.vlogin .airy-soc:hover {
+  background: #fff;
+  border-color: var(--border-strong);
+}
+.vlogin .airy-soc:active {
+  transform: scale(0.98);
+}
+.vlogin .airy-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 26px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.vlogin .airy-foot a {
+  color: var(--text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.vlogin .airy-foot a:hover {
+  color: var(--accent);
+}
+.vlogin .err {
+  color: var(--danger);
+  font-size: 13px;
+  text-align: center;
+  margin: 0 0 12px;
+}
+
+@media (max-width: 520px) {
+  .vlogin .vrole-grid {
+    grid-template-columns: 1fr;
+  }
+  .vlogin .panel,
+  .vlogin .airy {
+    padding: 24px 20px;
+  }
+}

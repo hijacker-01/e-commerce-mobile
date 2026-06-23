@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { api, setRole, setToken } from '../../lib/api';
 import { toast } from '../../lib/toast';
@@ -12,32 +13,37 @@ interface Me {
   role: string;
 }
 
-type RoleKey = 'CUSTOMER' | 'OWNER' | 'EMPLOYEE' | 'STOCKIST';
+type RoleKey = 'CUSTOMER' | 'STOCKIST' | 'EMPLOYEE' | 'OWNER';
 
-const ROLES: { key: RoleKey; label: string; icon: string; desc: string }[] = [
+const ROLES: {
+  key: RoleKey;
+  label: string;
+  desc: string;
+  img: string;
+}[] = [
   {
     key: 'CUSTOMER',
     label: 'Customer',
-    icon: '🛍️',
-    desc: 'Shop devices, track orders, bargain & exchange',
-  },
-  {
-    key: 'OWNER',
-    label: 'Owner',
-    icon: '👑',
-    desc: 'Manage store, orders, inventory & staff',
-  },
-  {
-    key: 'EMPLOYEE',
-    label: 'Employee',
-    icon: '🧑‍💼',
-    desc: 'Handle orders, returns & customer Q&A',
+    desc: 'Shop devices, bargain & track orders',
+    img: '/roles/role-customer.png',
   },
   {
     key: 'STOCKIST',
     label: 'Stockist',
-    icon: '📦',
-    desc: 'Supply inventory via challans',
+    desc: 'Supply inventory & manage challans',
+    img: '/roles/role-stockist.png',
+  },
+  {
+    key: 'EMPLOYEE',
+    label: 'Employee',
+    desc: 'Billing, GST invoices & support',
+    img: '/roles/role-employee.png',
+  },
+  {
+    key: 'OWNER',
+    label: 'Owner',
+    desc: 'Full ERP console & analytics',
+    img: '/roles/role-owner.png',
   },
 ];
 
@@ -48,39 +54,34 @@ const HOME_FOR: Record<string, string> = {
   CUSTOMER: '/',
 };
 
+type Screen = 'role' | 'login' | 'signup';
+
 export default function LoginPage() {
-  const [selectedRole, setSelectedRole] = useState<RoleKey | null>(null);
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [screen, setScreen] = useState<Screen>('role');
+  const [selectedRole, setSelectedRole] = useState<RoleKey>('CUSTOMER');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const role = ROLES.find((r) => r.key === selectedRole);
-  // Only customers can self-register; staff/stockist accounts are provisioned.
+  const role = ROLES.find((r) => r.key === selectedRole)!;
   const canRegister = selectedRole === 'CUSTOMER';
 
-  // Form is valid enough to submit (mirrors backend: password >= 6 on register).
+  function go(next: Screen) {
+    setError(null);
+    setScreen(next);
+    if (typeof window !== 'undefined')
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   const canSubmit =
-    mode === 'login'
-      ? phone.trim().length > 0 && password.length > 0
-      : name.trim().length > 0 &&
-        phone.trim().length > 0 &&
-        password.length >= 6;
-
-  function chooseRole(key: RoleKey) {
-    setSelectedRole(key);
-    setMode('login');
-    setError(null);
-  }
-
-  function switchMode() {
-    setMode((m) => (m === 'login' ? 'register' : 'login'));
-    setError(null);
-  }
+    screen === 'signup'
+      ? name.trim() && phone.trim() && password.length >= 6
+      : phone.trim() && password.length > 0;
 
   async function submit() {
     if (!canSubmit || loading) return;
@@ -88,26 +89,24 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const resp =
-        mode === 'login'
-          ? await api.post<AuthResp>('/auth/login', {
-              phone: phone.trim(),
-              password,
-            })
-          : await api.post<AuthResp>('/auth/register', {
+        screen === 'signup'
+          ? await api.post<AuthResp>('/auth/register', {
               name: name.trim(),
               phone: phone.trim(),
               password,
               role: 'CUSTOMER',
+            })
+          : await api.post<AuthResp>('/auth/login', {
+              phone: phone.trim(),
+              password,
             });
       setToken(resp.accessToken);
       const me = await api.get<Me>('/auth/me');
       setRole(me.role);
-      // If the account's real role differs from the chosen portal, let them
-      // know (as a toast that survives navigation) and route by the real role.
-      if (selectedRole && me.role !== selectedRole) {
+      if (me.role !== selectedRole) {
         toast(`Signed in as ${me.role} — taking you to your area.`, 'info');
       } else {
-        toast(mode === 'login' ? 'Welcome back!' : 'Account created!');
+        toast(screen === 'signup' ? 'Account created!' : 'Welcome back!');
       }
       router.push(HOME_FOR[me.role] ?? '/');
     } catch (e) {
@@ -116,167 +115,275 @@ export default function LoginPage() {
     }
   }
 
-  // ---- Step 1: choose a role ----
-  if (!selectedRole) {
-    return (
-      <main>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div className="eyebrow">Voltora·Store</div>
-          <h1>Sign in to continue</h1>
-          <p className="muted">Choose how you want to sign in.</p>
-        </div>
-        <div className="role-grid">
-          {ROLES.map((r) => (
-            <button
-              key={r.key}
-              className="role-card"
-              onClick={() => chooseRole(r.key)}
-            >
-              <span className="role-icon" aria-hidden="true">
-                {r.icon}
-              </span>
-              <strong>{r.label}</strong>
-              <span className="muted" style={{ fontSize: 13 }}>
-                {r.desc}
-              </span>
-            </button>
-          ))}
-        </div>
-        <p className="muted" style={{ textAlign: 'center', marginTop: 24 }}>
-          <button className="link-inline" onClick={() => router.push('/')}>
-            Continue browsing without signing in →
-          </button>
-        </p>
-      </main>
-    );
-  }
+  const brandbar = (
+    <div className="brandbar">
+      <div className="lmark">V</div>
+      <span className="lname">
+        Voltora<span className="dot">·</span>Store
+      </span>
+    </div>
+  );
 
-  // ---- Step 2: login / register for the chosen role ----
+  const social = (
+    <div className="airy-social">
+      <button
+        type="button"
+        className="airy-soc"
+        onClick={() => toast('Social sign-in is coming soon.', 'info')}
+      >
+         Apple
+      </button>
+      <button
+        type="button"
+        className="airy-soc"
+        onClick={() => toast('Social sign-in is coming soon.', 'info')}
+      >
+        <span style={{ fontWeight: 800 }}>G</span> Google
+      </button>
+    </div>
+  );
+
   return (
-    <main>
-      <div className="auth-wrap">
-        {/* Brand panel */}
-        <div className="auth-panel">
-          <div className="eyebrow" style={{ color: 'rgba(255,255,255,0.8)' }}>
-            Voltora·Store
-          </div>
-          <h2>
-            <span aria-hidden="true">{role?.icon}</span> {role?.label} portal
-          </h2>
-          <ul>
-            <li>⚡ AI-verified authentic devices</li>
-            <li>💬 Instant in-app bargaining</li>
-            <li>🚚 Fast delivery &amp; easy exchange</li>
-            <li>💳 No-cost EMI on flagship devices</li>
-          </ul>
-        </div>
+    <main className="vlogin">
+      {brandbar}
+      <div className="stagebox">
+        {/* ===== Screen 1: role selection ===== */}
+        {screen === 'role' && (
+          <div className="panel">
+            <span className="hero-emoji">⚡</span>
+            <h1 className="welcome">Welcome to Voltora</h1>
+            <p className="sub">Choose how you&apos;ll be signing in.</p>
 
-        {/* Form */}
-        <div className="auth-form">
-          <button
-            className="link-btn"
-            onClick={() => setSelectedRole(null)}
-            style={{ marginBottom: 10 }}
-          >
-            ← Choose a different role
-          </button>
-          <h1 style={{ fontSize: 28 }}>
-            {mode === 'login'
-              ? `Log in as ${role?.label}`
-              : 'Create your account'}
-          </h1>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-            noValidate
-          >
-            {mode === 'register' && (
-              <>
-                <label htmlFor="name">Name</label>
-                <input
-                  id="name"
-                  value={name}
-                  autoComplete="name"
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </>
-            )}
-
-            <label htmlFor="phone">Phone</label>
-            <input
-              id="phone"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel"
-              maxLength={15}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, ''))}
-            />
-
-            <label htmlFor="password">Password</label>
-            <div className="pass-wrap">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                autoComplete={
-                  mode === 'login' ? 'current-password' : 'new-password'
-                }
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="pass-toggle"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                onClick={() => setShowPassword((v) => !v)}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
+            <div className="vrole-grid">
+              {ROLES.map((r) => (
+                <button
+                  key={r.key}
+                  className={`vrole ${selectedRole === r.key ? 'active' : ''}`}
+                  onClick={() => setSelectedRole(r.key)}
+                >
+                  <span className="r-check">✓</span>
+                  <div className="r-ic">
+                    <Image
+                      src={r.img}
+                      alt={r.label}
+                      fill
+                      sizes="76px"
+                      style={{ objectFit: 'contain', padding: 6 }}
+                    />
+                  </div>
+                  <div className="r-name">{r.label}</div>
+                  <div className="r-desc">{r.desc}</div>
+                </button>
+              ))}
             </div>
-            {mode === 'register' && (
-              <p className="field-hint">At least 6 characters.</p>
-            )}
 
-            {error && (
-              <p className="error" role="alert" style={{ marginTop: 10 }}>
-                {error}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              style={{ marginTop: 18, width: '100%' }}
-              disabled={loading || !canSubmit}
-            >
-              {loading
-                ? 'Signing in…'
-                : mode === 'login'
-                  ? 'Log in'
-                  : 'Sign up'}
+            <button className="btn-primary" onClick={() => go('login')}>
+              Continue as {role.label}
             </button>
-          </form>
+            <p className="foot">
+              Already a member?{' '}
+              <a onClick={() => go('login')}>Sign in</a>
+            </p>
+          </div>
+        )}
 
-          {canRegister ? (
-            <p className="muted" style={{ marginTop: 16 }}>
-              {mode === 'login' ? 'No account?' : 'Have an account?'}{' '}
-              <button className="link-inline" onClick={switchMode}>
-                {mode === 'login' ? 'Register' : 'Log in'}
+        {/* ===== Screen 2: sign in ===== */}
+        {screen === 'login' && (
+          <div className="airy">
+            <button
+              className="airy-back"
+              aria-label="Back"
+              onClick={() => go('role')}
+            >
+              ←
+            </button>
+            <h1 className="airy-h">Welcome back</h1>
+            <p className="airy-sub">
+              Sign in to your <b>{role.label}</b> account.
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+              noValidate
+            >
+              <div className="airy-field">
+                <label>Phone</label>
+                <div className="airy-input">
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder="9000000001"
+                    value={phone}
+                    onChange={(e) =>
+                      setPhone(e.target.value.replace(/[^\d+]/g, ''))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="airy-field">
+                <label>Password</label>
+                <div className="airy-input">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="eye"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="airy-row">
+                <label className="remember">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                  />
+                  <span className="checkbox">✓</span> Remember me
+                </label>
+                <button
+                  type="button"
+                  className="forgot"
+                  onClick={() =>
+                    toast('Contact the store owner to reset your password.', 'info')
+                  }
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              {error && <p className="err">{error}</p>}
+
+              <button
+                type="submit"
+                className="airy-submit"
+                disabled={loading || !canSubmit}
+              >
+                {loading ? 'Signing in…' : 'Sign in'}
               </button>
+            </form>
+
+            {social}
+
+            <div className="airy-foot">
+              <span>
+                {canRegister ? (
+                  <>
+                    Don&apos;t have an account?{' '}
+                    <a onClick={() => go('signup')}>Sign up</a>
+                  </>
+                ) : (
+                  <>{role.label} accounts are provisioned by the owner.</>
+                )}
+              </span>
+              <a>Terms &amp; Conditions</a>
+            </div>
+          </div>
+        )}
+
+        {/* ===== Screen 3: sign up (customer only) ===== */}
+        {screen === 'signup' && (
+          <div className="airy">
+            <button
+              className="airy-back"
+              aria-label="Back"
+              onClick={() => go('login')}
+            >
+              ←
+            </button>
+            <h1 className="airy-h">Create an account</h1>
+            <p className="airy-sub">
+              Sign up for your <b>Customer</b> account.
             </p>
-          ) : (
-            <p className="muted" style={{ marginTop: 16, fontSize: 13 }}>
-              {role?.label} accounts are provisioned by the store owner.
-            </p>
-          )}
-          {selectedRole === 'OWNER' && (
-            <p className="muted" style={{ fontSize: 12 }}>
-              Seeded owner — phone 9000000001 / password123
-            </p>
-          )}
-        </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+              noValidate
+            >
+              <div className="airy-field">
+                <label>Full name</label>
+                <div className="airy-input">
+                  <input
+                    autoComplete="name"
+                    placeholder="Amélie Laurent"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="airy-field">
+                <label>Phone</label>
+                <div className="airy-input">
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    placeholder="9000000001"
+                    value={phone}
+                    onChange={(e) =>
+                      setPhone(e.target.value.replace(/[^\d+]/g, ''))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="airy-field">
+                <label>Password</label>
+                <div className="airy-input">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="Create a password (min 6)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="eye"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+
+              {error && <p className="err">{error}</p>}
+
+              <button
+                type="submit"
+                className="airy-submit"
+                disabled={loading || !canSubmit}
+              >
+                {loading ? 'Creating…' : 'Submit'}
+              </button>
+            </form>
+
+            {social}
+
+            <div className="airy-foot">
+              <span>
+                Have an account? <a onClick={() => go('login')}>Sign in</a>
+              </span>
+              <a>Terms &amp; Conditions</a>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );

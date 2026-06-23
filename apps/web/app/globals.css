@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import './voltora-bento.css';
+@import './voltora-login.css';
 
 :root {
   /* Voltora design system — framed glass on soft gradient */
