@@ -146,9 +146,10 @@
 .vlogin .r-name {
   font-weight: 700;
   font-size: 15px;
+  color: var(--accent);
 }
 .vlogin .r-desc {
-  color: var(--muted);
+  color: var(--accent);
   font-size: 12.5px;
   margin-top: 3px;
   line-height: 1.45;

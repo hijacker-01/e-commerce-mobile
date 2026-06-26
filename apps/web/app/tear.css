@@ -1,0 +1,184 @@
+/* ============================================================
+   Tearable paper landing (/welcome) — full-screen overlay
+   ============================================================ */
+.tear-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  /* deep brand colour shows in the gap as the halves separate */
+  background: #070d3a;
+}
+.tear-root.dragging {
+  cursor: grabbing;
+}
+
+.tear-half {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+/* Both stretch away from the tear line (origin at screen centre) so the torn
+   edges stay together while the material elongates. */
+.tear-half {
+  transform-origin: 50% 50%;
+}
+.tear-half.top {
+  filter: drop-shadow(0 7px 10px rgba(0, 0, 0, 0.34));
+}
+.tear-half.bottom {
+  filter: drop-shadow(0 -7px 10px rgba(0, 0, 0, 0.34));
+}
+/* Springy recoil when released early */
+.tear-half.snapping {
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+/* Stage 1: stretch quickly to the breaking point */
+.tear-half.taut {
+  transition: transform 0.17s ease-out;
+}
+/* Stage 2: snap apart fast (the rupture) */
+.tear-half.ripping {
+  transition: transform 0.56s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The poster art (duplicated in both halves; clip-path reveals each region) */
+.poster {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #fff;
+  /* base dye + a soft shading band at the tear line so the torn edges read
+     as fabric thickness, not a flat cut */
+  background:
+    linear-gradient(
+      0deg,
+      transparent 38%,
+      rgba(0, 0, 0, 0.28) 50%,
+      transparent 62%
+    ),
+    radial-gradient(120% 130% at 20% 10%, #2a3fd4 0%, #1428a0 40%, #0a1560 100%);
+}
+/* woven fabric weave — fine warp + weft threads, plus a twill diagonal */
+.poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.14;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.5) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0 1px, transparent 1px 4px),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.25) 0 1px, transparent 1px 6px);
+  background-size: 4px 4px, 4px 4px, 8px 8px;
+}
+.poster-inner {
+  position: relative;
+  z-index: 1;
+  padding: 24px;
+}
+.poster-eyebrow {
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: clamp(10px, 1.4vw, 13px);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 18px;
+}
+.poster-brand {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-size: clamp(44px, 11vw, 132px);
+  margin: 0;
+  color: #fff;
+}
+.poster-brand .dot {
+  color: #8aa0ff;
+}
+.poster-tag {
+  margin: 18px 0 0;
+  font-size: clamp(15px, 2.2vw, 22px);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+/* UI layer — always clickable, never torn (sits above the halves) */
+.tear-ui {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: clamp(28px, 8vh, 86px);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  pointer-events: none;
+}
+.tear-hint {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.78);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.tear-hint .grip {
+  font-size: 16px;
+  animation: tear-bob 1.6s var(--ease) infinite;
+}
+@keyframes tear-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+.tear-enter {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: var(--accent);
+  border: none;
+  border-radius: 999px;
+  padding: 13px 26px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.12s var(--ease), background 0.18s var(--ease);
+}
+.tear-enter:hover {
+  background: #eef1ff;
+}
+.tear-enter:active {
+  transform: scale(0.97);
+}
+.tear-enter:focus-visible {
+  outline: 3px solid #8aa0ff;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tear-half.snapping,
+  .tear-half.taut,
+  .tear-half.ripping {
+    transition-duration: 0.001s;
+  }
+  .tear-hint .grip {
+    animation: none;
+  }
+}

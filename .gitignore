@@ -18,6 +18,9 @@ out/
 # Prisma
 apps/backend/prisma/*.db
 
+# Uploaded product images (runtime, served from disk)
+apps/backend/uploads/
+
 # Logs
 *.log
 npm-debug.log*

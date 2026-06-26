@@ -237,7 +237,10 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
   const [price, setPrice] = useState('');
   const [mrp, setMrp] = useState('');
   const [description, setDescription] = useState('');
-  const [media, setMedia] = useState('');
+  const [mediaList, setMediaList] = useState<string[]>([]);
+  const [imgTab, setImgTab] = useState<'upload' | 'url'>('upload');
+  const [urlInput, setUrlInput] = useState('');
+  const [uploading, setUploading] = useState(false);
   const [shops, setShops] = useState<Lookup[]>([]);
   const [categories, setCategories] = useState<Lookup[]>([]);
   const [shopId, setShopId] = useState('');
@@ -275,13 +278,45 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
     }
   }
 
+  function addUrl() {
+    const u = urlInput.trim();
+    if (!u) return;
+    setMediaList((m) => [...m, u]);
+    setUrlInput('');
+  }
+
+  function removeImg(i: number) {
+    setMediaList((m) => m.filter((_, idx) => idx !== i));
+  }
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file
+    if (!file) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/uploads`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message ?? 'Upload failed');
+      setMediaList((m) => [...m, data.url]);
+      toast('Image uploaded ✓');
+    } catch (err) {
+      toast((err as Error).message, 'error');
+    } finally {
+      setUploading(false);
+    }
+  }
+
   async function create() {
     setSaving(true);
     try {
-      const mediaUrls = media
-        .split(/[\n,]/)
-        .map((s) => s.trim())
-        .filter(Boolean);
       await api.post('/products', {
         shopId,
         categoryId,
@@ -291,7 +326,7 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
         description,
         price: Number(price),
         mrp: mrp ? Number(mrp) : undefined,
-        media: mediaUrls,
+        media: mediaList,
       });
       toast('Product listed ✓');
       // Reset the form for the next entry.
@@ -301,7 +336,8 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
       setPrice('');
       setMrp('');
       setDescription('');
-      setMedia('');
+      setMediaList([]);
+      setUrlInput('');
       onCreated();
     } catch (e) {
       toast((e as Error).message, 'error');
@@ -384,12 +420,74 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
           </select>
         </div>
       </div>
-      <label>Image URLs (one per line)</label>
-      <textarea
-        value={media}
-        placeholder="https://…/photo.jpg"
-        onChange={(e) => setMedia(e.target.value)}
-      />
+      <label>Images</label>
+      <div className="img-picker">
+        <div className="img-tabs">
+          <button
+            type="button"
+            className={`img-tab ${imgTab === 'upload' ? 'active' : ''}`}
+            onClick={() => setImgTab('upload')}
+          >
+            📁 Browse
+          </button>
+          <button
+            type="button"
+            className={`img-tab ${imgTab === 'url' ? 'active' : ''}`}
+            onClick={() => setImgTab('url')}
+          >
+            🔗 From URL
+          </button>
+        </div>
+
+        {imgTab === 'upload' ? (
+          <label className="upload-drop">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={onPickFile}
+              style={{ display: 'none' }}
+            />
+            {uploading ? 'Uploading…' : '＋ Choose an image from your device'}
+          </label>
+        ) : (
+          <div className="row">
+            <input
+              placeholder="https://…/photo.jpg"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addUrl();
+                }
+              }}
+            />
+            <button type="button" className="secondary" onClick={addUrl}>
+              Add
+            </button>
+          </div>
+        )}
+
+        {mediaList.length > 0 && (
+          <div className="img-strip">
+            {mediaList.map((src, i) => (
+              <div key={i} className="img-chip">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt={`image ${i + 1}`} />
+                <button
+                  type="button"
+                  className="img-x"
+                  aria-label="Remove image"
+                  onClick={() => removeImg(i)}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <button
         style={{ marginTop: 14 }}
         onClick={create}
