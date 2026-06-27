@@ -39,6 +39,17 @@ export default function CartPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Take a cart product into price negotiation before checkout.
+  async function bargain(productId: string) {
+    try {
+      const t = await api.post<{ id: string }>('/chat/threads', { productId });
+      toast('Opening bargain…', 'info');
+      router.push(`/chat?thread=${t.id}`);
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  }
+
   async function setQty(productId: string, quantity: number) {
     if (quantity < 0) return;
     // Optimistic update for instant feedback.
@@ -124,12 +135,21 @@ export default function CartPage() {
                     </td>
                     <td>₹{i.lineTotal}</td>
                     <td>
-                      <button
-                        className="secondary"
-                        onClick={() => setQty(i.productId, 0)}
-                      >
-                        Remove
-                      </button>
+                      <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
+                        <button
+                          className="secondary"
+                          title="Negotiate a price before checkout"
+                          onClick={() => bargain(i.productId)}
+                        >
+                          💬 Bargain
+                        </button>
+                        <button
+                          className="secondary"
+                          onClick={() => setQty(i.productId, 0)}
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -155,9 +175,13 @@ export default function CartPage() {
               <span>Total</span>
               <span>₹{cart.subtotal}</span>
             </div>
+            <p className="muted" style={{ fontSize: 12, marginTop: 14 }}>
+              💬 Want a better price? Tap <strong>Bargain</strong> on any item to
+              negotiate before checkout.
+            </p>
             <button
               className="success"
-              style={{ width: '100%', marginTop: 18 }}
+              style={{ width: '100%', marginTop: 10 }}
               onClick={() => router.push('/checkout')}
             >
               Checkout →

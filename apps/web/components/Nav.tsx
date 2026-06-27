@@ -68,6 +68,7 @@ export default function Nav() {
         onClick={() => setMenuOpen(false)}
       >
         <Link href="/" className={cls('/')}>Shop</Link>
+        <Link href="/coupons" className={cls('/coupons')}>Offers</Link>
         <Link href="/services" className={cls('/services')}>Services</Link>
         <Link href="/verify" className={cls('/verify')}>Verify</Link>
         {authed && role === 'CUSTOMER' && (
@@ -88,6 +89,7 @@ export default function Nav() {
         {authed && role === 'CUSTOMER' && (
           <Link href="/exchange" className={cls('/exchange')}>Exchange</Link>
         )}
+        {authed && <Link href="/account" className={cls('/account')}>Account</Link>}
         {role === 'OWNER' || role === 'EMPLOYEE' ? (
           <Link href="/owner" className={cls('/owner')}>Owner</Link>
         ) : null}
