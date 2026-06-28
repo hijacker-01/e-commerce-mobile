@@ -21,6 +21,9 @@ apps/backend/prisma/*.db
 # Uploaded product images (runtime, served from disk)
 apps/backend/uploads/
 
+# Orders/sales cold-storage archives (recoverable exports)
+apps/backend/archives/
+
 # Logs
 *.log
 npm-debug.log*

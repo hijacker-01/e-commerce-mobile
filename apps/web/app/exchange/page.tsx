@@ -51,6 +51,12 @@ export default function ExchangePage() {
   return (
     <main style={{ maxWidth: 560 }}>
       <h1>Exchange your old device</h1>
+      <div className="pickup-best" style={{ marginBottom: 16 }}>
+        📄 <strong>Required for exchange:</strong> please bring the original{' '}
+        <strong>purchase bill / invoice</strong> and your{' '}
+        <strong>Aadhaar card</strong> when you come to the store. The exchange
+        can’t be completed without both.
+      </div>
       <div className="card">
         <div className="row">
           <div style={{ flex: 1 }}>

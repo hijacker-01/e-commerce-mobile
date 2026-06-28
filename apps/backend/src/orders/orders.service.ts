@@ -4,7 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma, Role } from '@prisma/client';
+import { OrderStatus, PaymentMethod, Prisma, Role } from '@prisma/client';
+
+// Store policy: instant discount when paying by Credit Card.
+const CARD_OFFER_PERCENT = 5;
+const CARD_OFFER_CAP = 2000;
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/order.dto';
 import { AuthUser } from '../auth/decorators/current-user.decorator';
@@ -44,7 +48,14 @@ export class OrdersService {
       };
     });
 
-    const total = subtotal.add(gstAmount);
+    // Credit-card offer: 5% instant off (capped), applied at order creation.
+    let discount = new Prisma.Decimal(0);
+    if (dto.paymentMethod === PaymentMethod.CREDIT_CARD) {
+      const raw = subtotal.mul(CARD_OFFER_PERCENT).div(100);
+      discount = Prisma.Decimal.min(raw, new Prisma.Decimal(CARD_OFFER_CAP));
+      discount = Prisma.Decimal.min(discount, subtotal);
+    }
+    const total = subtotal.add(gstAmount).sub(discount);
 
     return this.prisma.order.create({
       data: {
@@ -55,6 +66,7 @@ export class OrdersService {
         paymentMethod: dto.paymentMethod,
         subtotal,
         gstAmount,
+        discount,
         total,
         items: { create: items },
       },

@@ -46,6 +46,9 @@ export class AuthService {
     }
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account disabled — contact the owner');
+    }
 
     return this.issueTokens(user.id, user.role, user.permissions);
   }

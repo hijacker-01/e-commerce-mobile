@@ -105,8 +105,14 @@ export default function OwnerPage() {
     <main>
       <h1>Owner dashboard</h1>
       <div className="row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
-        <Link className="btn" href="/owner/stockists">
+        <a className="btn" href="#add-product">
+          ➕ Add product
+        </a>
+        <Link className="btn secondary" href="/owner/stockists">
           Stockists &amp; challans
+        </Link>
+        <Link className="btn secondary" href="/owner/staff">
+          Employees &amp; stockists
         </Link>
         <Link className="btn secondary" href="/owner/credit">
           Customer credit
@@ -119,6 +125,9 @@ export default function OwnerPage() {
         </Link>
         <Link className="btn secondary" href="/owner/questions">
           Customer Q&amp;A
+        </Link>
+        <Link className="btn secondary" href="/owner/archive">
+          Archive &amp; backup
         </Link>
         <Link className="btn secondary" href="/owner/audit">
           Audit log
@@ -349,8 +358,12 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
   const canPublish = !!(shopId && categoryId && brand && model && title && price);
 
   return (
-    <div className="card" style={{ marginTop: 28 }}>
-      <h2 style={{ marginTop: 0 }}>List a product</h2>
+    <div
+      id="add-product"
+      className="card"
+      style={{ marginTop: 28, scrollMarginTop: 90 }}
+    >
+      <h2 style={{ marginTop: 0 }}>➕ List a product</h2>
       <div className="row">
         <div style={{ flex: 1 }}>
           <label>Brand</label>

@@ -126,3 +126,80 @@
   padding: 2px 9px;
   border-radius: 999px;
 }
+
+/* Applicable coupons at checkout */
+.applicable-coupons {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 12px;
+  background: var(--brand-tint);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.appl-coupon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.appl-coupon.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--brand-ring);
+}
+.appl-coupon code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+.appl-coupon button {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+/* Checkout — card offer + store pickup timing */
+.card-offer {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #eef7ee;
+  border: 1px solid #cfe8cf;
+  color: #15803d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pickup-best {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fff7e6;
+  border: 1px solid #f3d28a;
+  color: #92600a;
+  font-size: 13px;
+  font-weight: 500;
+}
+.pickup-note {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.pickup-note.ready {
+  background: #eef7ee;
+  border: 1px solid #cfe8cf;
+  color: #14532d;
+}
+.pickup-note.next {
+  background: #eef2fb;
+  border: 1px solid #cdd8f3;
+  color: #1e3a8a;
+}

@@ -25,6 +25,13 @@ export class CouponsController {
     return this.coupons.listActive();
   }
 
+  // Coupons applicable to the signed-in customer's current cart.
+  @Roles(Role.CUSTOMER)
+  @Get('applicable')
+  applicable(@CurrentUser() user: AuthUser) {
+    return this.coupons.applicableForCart(user.id);
+  }
+
   @Roles(Role.CUSTOMER)
   @Post('apply')
   apply(@CurrentUser() user: AuthUser, @Body() dto: ApplyCouponDto) {

@@ -28,6 +28,7 @@ import { OffersModule } from './offers/offers.module';
 import { VerifyModule } from './verify/verify.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { BackupModule } from './backup/backup.module';
+import { ArchiveModule } from './archive/archive.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { BackupModule } from './backup/backup.module';
     VerifyModule,
     UploadsModule,
     BackupModule,
+    ArchiveModule,
   ],
 })
 export class AppModule {}

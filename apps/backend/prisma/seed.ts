@@ -17,6 +17,26 @@ async function main() {
     },
   });
 
+  // Provisioned staff member (employees are created by the owner, not signup).
+  await prisma.user.upsert({
+    where: { phone: '9000000003' },
+    update: {},
+    create: {
+      name: 'Shop Employee',
+      phone: '9000000003',
+      role: Role.EMPLOYEE,
+      passwordHash,
+      permissions: [
+        'order.approve',
+        'product.write',
+        'invoice.create',
+        'inventory.write',
+        'coupon.create',
+        'challan.create',
+      ],
+    },
+  });
+
   const shop = await prisma.shop.upsert({
     where: { ownerId: owner.id },
     update: {},
