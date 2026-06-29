@@ -215,10 +215,25 @@ model Product {
   deviceKb         DeviceKB?
   cartItems        CartItem[]
   wishlistItems    WishlistItem[]
+  specialOffer     SpecialOffer?
 
   @@index([brand])
   @@index([categoryId])
   @@index([variantGroup])
+}
+
+// Curated "Special Store" deal: the product's effective price is dropped to
+// specialPrice; originalPrice restores it; lowestPrice is the yearly lowest.
+model SpecialOffer {
+  id            String   @id @default(cuid())
+  productId     String   @unique
+  product       Product  @relation(fields: [productId], references: [id])
+  specialPrice  Decimal  @db.Decimal(12, 2)
+  originalPrice Decimal  @db.Decimal(12, 2)
+  lowestPrice   Decimal  @db.Decimal(12, 2)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model ProductQuestion {

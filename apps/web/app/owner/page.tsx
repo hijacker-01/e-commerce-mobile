@@ -120,6 +120,9 @@ export default function OwnerPage() {
         <Link className="btn secondary" href="/owner/credit">
           Customer credit
         </Link>
+        <Link className="btn secondary" href="/owner/special">
+          ✦ Special Store
+        </Link>
         <Link className="btn secondary" href="/owner/storefront">
           Storefront (lobby + services)
         </Link>

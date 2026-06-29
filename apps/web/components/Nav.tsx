@@ -68,6 +68,7 @@ export default function Nav() {
         onClick={() => setMenuOpen(false)}
       >
         <Link href="/" className={cls('/')}>Shop</Link>
+        <Link href="/special" className={cls('/special')}>✦ Special</Link>
         <Link href="/coupons" className={cls('/coupons')}>Offers</Link>
         <Link href="/services" className={cls('/services')}>Services</Link>
         <Link href="/verify" className={cls('/verify')}>Verify</Link>

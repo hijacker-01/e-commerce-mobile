@@ -1485,3 +1485,18 @@ th {
   font-weight: 700;
   color: var(--success);
 }
+
+/* ---------- Special Store: yearly lowest ---------- */
+.yearly-low {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #92600a;
+  background: #fff7e6;
+  border: 1px solid #f3d28a;
+  border-radius: 999px;
+  padding: 3px 10px;
+}

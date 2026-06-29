@@ -30,6 +30,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { BackupModule } from './backup/backup.module';
 import { ArchiveModule } from './archive/archive.module';
 import { StockistOrdersModule } from './stockist-orders/stockist-orders.module';
+import { SpecialModule } from './special/special.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { StockistOrdersModule } from './stockist-orders/stockist-orders.module';
     BackupModule,
     ArchiveModule,
     StockistOrdersModule,
+    SpecialModule,
   ],
 })
 export class AppModule {}

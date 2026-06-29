@@ -617,6 +617,38 @@ async function main() {
     });
   }
 
+  // Special Store demo deals (idempotent) — drop a few prices and record a
+  // yearly-lowest below the special price for the "lowest price" badge.
+  const specialCount = await prisma.specialOffer.count();
+  if (specialCount === 0) {
+    const picks = [
+      'Samsung Galaxy A55 5G (8GB/128GB)',
+      'Sony WH-1000XM5 Wireless Noise Cancelling Headphones',
+      'Samsung Galaxy Buds3 Pro (ANC)',
+    ];
+    for (const title of picks) {
+      const p = await prisma.product.findFirst({ where: { title } });
+      if (!p) continue;
+      const original = p.price;
+      const special = original.mul(0.88).toDecimalPlaces(0); // ~12% off
+      const lowest = original.mul(0.83).toDecimalPlaces(0); // yearly lowest
+      await prisma.specialOffer.create({
+        data: {
+          productId: p.id,
+          specialPrice: special,
+          originalPrice: original,
+          lowestPrice: lowest,
+        },
+      });
+      await prisma.product.update({
+        where: { id: p.id },
+        data: { price: special, mrp: p.mrp ?? original },
+      });
+    }
+    // eslint-disable-next-line no-console
+    console.log('Seeded Special Store deals.');
+  }
+
   // eslint-disable-next-line no-console
   console.log('Seed complete. Owner login -> phone: 9000000001, pw: password123');
 }
