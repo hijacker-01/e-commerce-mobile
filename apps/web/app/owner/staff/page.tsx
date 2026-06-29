@@ -31,8 +31,12 @@ export default function StaffPage() {
   }
 
   useEffect(() => {
-    if (!getToken() || getRole() !== 'OWNER') {
+    if (!getToken()) {
       router.push('/login');
+      return;
+    }
+    if (getRole() !== 'OWNER') {
+      router.push('/owner');
       return;
     }
     load();

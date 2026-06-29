@@ -24,13 +24,13 @@ export class SpecialController {
     return this.special.list();
   }
 
-  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Roles(Role.OWNER)
   @Post()
   add(@Body() dto: AddSpecialDto) {
     return this.special.upsert(dto.productId, dto.specialPrice);
   }
 
-  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Roles(Role.OWNER)
   @Delete(':productId')
   remove(@Param('productId') productId: string) {
     return this.special.remove(productId);

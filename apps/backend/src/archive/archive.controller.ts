@@ -3,8 +3,8 @@ import { Role } from '@prisma/client';
 import { ArchiveService } from './archive.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
-// Orders/sales cold-storage archive — owner/employee only.
-@Roles(Role.OWNER, Role.EMPLOYEE)
+// Orders/sales cold-storage archive — owner only (export/purge is destructive).
+@Roles(Role.OWNER)
 @Controller('archive')
 export class ArchiveController {
   constructor(private readonly archive: ArchiveService) {}

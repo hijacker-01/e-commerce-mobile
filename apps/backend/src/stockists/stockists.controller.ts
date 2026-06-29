@@ -6,8 +6,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 
-// Stockist registry + inbound supply challans (owner/employee operated).
-@Roles(Role.OWNER, Role.EMPLOYEE)
+// Stockist registry + inbound supply challans — owner-operated wholesale.
+@Roles(Role.OWNER)
 @Controller('stockists')
 export class StockistsController {
   constructor(private readonly stockists: StockistsService) {}
