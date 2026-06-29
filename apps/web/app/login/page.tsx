@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { api, setRole, setToken } from '../../lib/api';
@@ -65,8 +65,22 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // If we were bounced here by an expired session, jump straight to the
+  // sign-in screen, explain why, and remember where to return afterwards.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('expired') === '1') {
+      setScreen('login');
+      setNotice('Your session expired. Please sign in again to continue.');
+    }
+    const next = params.get('next');
+    if (next && next.startsWith('/')) setNextUrl(next);
+  }, []);
 
   const role = ROLES.find((r) => r.key === selectedRole)!;
   const canRegister = selectedRole === 'CUSTOMER';
@@ -108,7 +122,11 @@ export default function LoginPage() {
       } else {
         toast(screen === 'signup' ? 'Account created!' : 'Welcome back!');
       }
-      router.push(HOME_FOR[me.role] ?? '/');
+      // Return to the page that bounced us here (e.g. the owner was mid-task),
+      // unless this is a fresh signup.
+      const dest =
+        nextUrl && screen !== 'signup' ? nextUrl : HOME_FOR[me.role] ?? '/';
+      router.push(dest);
     } catch (e) {
       setError((e as Error).message);
       setLoading(false);
@@ -201,6 +219,8 @@ export default function LoginPage() {
             <p className="airy-sub">
               Sign in to your <b>{role.label}</b> account.
             </p>
+
+            {notice && <p className="airy-notice">{notice}</p>}
 
             <form
               onSubmit={(e) => {
