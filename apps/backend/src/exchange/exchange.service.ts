@@ -13,10 +13,14 @@ export class ExchangeService {
 
   /** Customer submits an old device; AI estimates a buyback value. */
   async submit(customerId: string, dto: SubmitExchangeDto) {
+    // Feed the condition questionnaire into the valuation so it's more accurate.
+    const conditionForAi = dto.details
+      ? `${dto.condition} (${dto.details})`
+      : dto.condition;
     const estimate = await this.ai.estimateExchangeValue(
       dto.brand,
       dto.model,
-      dto.condition,
+      conditionForAi,
     );
     return this.prisma.exchangeRequest.create({
       data: {
@@ -24,6 +28,8 @@ export class ExchangeService {
         brand: dto.brand,
         model: dto.model,
         condition: dto.condition,
+        imei: dto.imei,
+        details: dto.details,
         photos: dto.photos ?? [],
         aiValue:
           estimate?.aiValueInr != null

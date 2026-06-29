@@ -16,6 +16,14 @@ export class SubmitExchangeDto {
   condition!: string; // e.g. "good", "fair", "like new"
 
   @IsOptional()
+  @IsString()
+  imei?: string;
+
+  @IsOptional()
+  @IsString()
+  details?: string; // variant + answers to the condition questions
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   photos?: string[];

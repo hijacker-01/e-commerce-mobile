@@ -517,6 +517,8 @@ model ExchangeRequest {
   brand         String
   model         String
   condition     String
+  imei          String?
+  details       String?        @db.Text // variant + answers to the condition questions
   photos        String[]       @default([])
   aiValue       Decimal?       @db.Decimal(12, 2)
   approvedValue Decimal?       @db.Decimal(12, 2)
