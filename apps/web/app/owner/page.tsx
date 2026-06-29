@@ -108,6 +108,9 @@ export default function OwnerPage() {
         <a className="btn" href="#add-product">
           ➕ Add product
         </a>
+        <Link className="btn secondary" href="/owner/stockist-orders">
+          Stockist orders
+        </Link>
         <Link className="btn secondary" href="/owner/stockists">
           Stockists &amp; challans
         </Link>
@@ -245,6 +248,7 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
   const [mrp, setMrp] = useState('');
+  const [stockistPrice, setStockistPrice] = useState('');
   const [description, setDescription] = useState('');
   const [mediaList, setMediaList] = useState<string[]>([]);
   const [imgTab, setImgTab] = useState<'upload' | 'url'>('upload');
@@ -335,6 +339,7 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
         description,
         price: Number(price),
         mrp: mrp ? Number(mrp) : undefined,
+        stockistPrice: stockistPrice ? Number(stockistPrice) : undefined,
         media: mediaList,
       });
       toast('Product listed ✓');
@@ -344,6 +349,7 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
       setTitle('');
       setPrice('');
       setMrp('');
+      setStockistPrice('');
       setDescription('');
       setMediaList([]);
       setUrlInput('');
@@ -405,6 +411,15 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
             type="number"
             value={mrp}
             onChange={(e) => setMrp(e.target.value)}
+          />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label>Stockist / wholesale price (₹)</label>
+          <input
+            type="number"
+            value={stockistPrice}
+            placeholder="defaults to 85% of price"
+            onChange={(e) => setStockistPrice(e.target.value)}
           />
         </div>
       </div>

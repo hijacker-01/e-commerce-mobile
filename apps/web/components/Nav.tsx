@@ -74,15 +74,17 @@ export default function Nav() {
         {authed && role === 'CUSTOMER' && (
           <Link href="/support" className={cls('/support')}>Support</Link>
         )}
-        {authed && (
+        {authed && role === 'CUSTOMER' && (
           <Link href="/cart" className={cls('/cart')}>
             Cart{cartCount > 0 && <span className="nav-count">{cartCount}</span>}
           </Link>
         )}
-        {authed && (
+        {authed && role === 'CUSTOMER' && (
           <Link href="/orders" className={cls('/orders')}>My Orders</Link>
         )}
-        {authed && <Link href="/chat" className={cls('/chat')}>Bargain</Link>}
+        {authed && role === 'CUSTOMER' && (
+          <Link href="/chat" className={cls('/chat')}>Bargain</Link>
+        )}
         {authed && role === 'CUSTOMER' && (
           <Link href="/wishlist" className={cls('/wishlist')}>Wishlist</Link>
         )}
@@ -94,7 +96,15 @@ export default function Nav() {
           <Link href="/owner" className={cls('/owner')}>Owner</Link>
         ) : null}
         {role === 'STOCKIST' && (
-          <Link href="/stockist" className={cls('/stockist')}>My Challans</Link>
+          <>
+            <Link href="/stockist/order" className={cls('/stockist/order')}>
+              Order stock
+            </Link>
+            <Link href="/stockist/orders" className={cls('/stockist/orders')}>
+              My orders
+            </Link>
+            <Link href="/stockist" className={cls('/stockist')}>Challans</Link>
+          </>
         )}
         <span className="nav-spacer" />
         {authed && (

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, getRole, getToken } from '../../lib/api';
 
@@ -49,10 +50,21 @@ export default function StockistPage() {
   return (
     <main>
       <div className="eyebrow">Stockist portal</div>
-      <h1>Supply challans</h1>
+      <h1>My challans</h1>
+      <div className="row" style={{ gap: 8, margin: '12px 0 8px', flexWrap: 'wrap' }}>
+        <Link className="btn secondary" href="/stockist/order">
+          🛒 Order stock
+        </Link>
+        <Link className="btn secondary" href="/stockist/orders">
+          My orders
+        </Link>
+        <Link className="btn" href="/stockist">
+          My challans
+        </Link>
+      </div>
       <p className="muted">
-        Inbound supply orders the store has issued to you. Once the shop marks a
-        challan <strong>received</strong>, stock moves into their inventory.
+        Challans the store has issued — wholesale orders &amp; inbound supply. Once
+        marked <strong>received</strong>, stock moves into inventory.
       </p>
 
       {loading ? (

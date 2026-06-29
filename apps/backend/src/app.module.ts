@@ -29,6 +29,7 @@ import { VerifyModule } from './verify/verify.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { BackupModule } from './backup/backup.module';
 import { ArchiveModule } from './archive/archive.module';
+import { StockistOrdersModule } from './stockist-orders/stockist-orders.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { ArchiveModule } from './archive/archive.module';
     UploadsModule,
     BackupModule,
     ArchiveModule,
+    StockistOrdersModule,
   ],
 })
 export class AppModule {}

@@ -57,16 +57,19 @@ function discountPct(price: string, mrp?: string | null): number | null {
 function PriceTag({ price, mrp }: { price: string; mrp?: string | null }) {
   const pct = discountPct(price, mrp);
   return (
-    <div className="price-row">
-      <span className="price" style={{ margin: 0 }}>
-        ₹{Number(price).toLocaleString('en-IN')}
-      </span>
-      {pct && (
-        <>
-          <span className="mrp">₹{Number(mrp).toLocaleString('en-IN')}</span>
-          <span className="discount">{pct}% off</span>
-        </>
-      )}
+    <div style={{ marginTop: 8 }}>
+      <span className="our-price-tag">⚡ Our price</span>
+      <div className="price-row" style={{ marginTop: 2 }}>
+        <span className="price" style={{ margin: 0 }}>
+          ₹{Number(price).toLocaleString('en-IN')}
+        </span>
+        {pct && (
+          <>
+            <span className="mrp">₹{Number(mrp).toLocaleString('en-IN')}</span>
+            <span className="discount">{pct}% off</span>
+          </>
+        )}
+      </div>
     </div>
   );
 }

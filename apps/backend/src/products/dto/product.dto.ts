@@ -46,6 +46,10 @@ export class CreateProductDto {
   mrp?: number;
 
   @IsOptional()
+  @IsNumber()
+  stockistPrice?: number;
+
+  @IsOptional()
   @IsString()
   hsnCode?: string;
 

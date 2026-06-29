@@ -345,19 +345,23 @@ export default function ProductPage({
           <div className="eyebrow">{product.brand}</div>
           <h1 style={{ marginBottom: 4 }}>{product.title}</h1>
           <div className="muted">{product.model}</div>
-          <div className="price-row" style={{ marginTop: 18 }}>
-            <span className="price" style={{ fontSize: 30, margin: 0 }}>
-              ₹{priceNum.toLocaleString('en-IN')}
-            </span>
-            {pct > 0 && (
-              <>
+          <div className="shop-price-box">
+            <div className="shop-price-label">⚡ Our Shop&apos;s Price</div>
+            <div className="shop-price-row">
+              <span className="shop-price">
+                ₹{priceNum.toLocaleString('en-IN')}
+              </span>
+              {pct > 0 && (
                 <span className="mrp" style={{ fontSize: 17 }}>
-                  ₹{mrpNum.toLocaleString('en-IN')}
+                  M.R.P. ₹{mrpNum.toLocaleString('en-IN')}
                 </span>
-                <span className="discount" style={{ fontSize: 15 }}>
-                  {pct}% off
-                </span>
-              </>
+              )}
+            </div>
+            {pct > 0 && (
+              <div className="shop-price-save">
+                You save ₹{(mrpNum - priceNum).toLocaleString('en-IN')} ({pct}%
+                off M.R.P.)
+              </div>
             )}
           </div>
           <div

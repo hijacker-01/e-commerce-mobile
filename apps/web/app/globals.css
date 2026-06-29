@@ -1439,3 +1439,49 @@ th {
   line-height: 1;
   cursor: pointer;
 }
+
+/* ---------- "Our Shop's Price" highlight ---------- */
+.our-price-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.shop-price-box {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--accent);
+  background: linear-gradient(180deg, var(--brand-tint), rgba(20, 40, 160, 0.02));
+}
+.shop-price-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.shop-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.shop-price {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+}
+.shop-price-save {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--success);
+}

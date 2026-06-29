@@ -192,6 +192,7 @@ model Product {
   specs       Json             @default("{}")
   price       Decimal          @db.Decimal(12, 2)
   mrp         Decimal?         @db.Decimal(12, 2)
+  stockistPrice Decimal?       @db.Decimal(12, 2) // wholesale price for stockists
   hsnCode     String?
   gstRate     Decimal          @default(18) @db.Decimal(5, 2)
   condition   ProductCondition @default(NEW)
@@ -345,6 +346,34 @@ model Stockist {
   createdAt DateTime @default(now())
 
   challans Challan[]
+  orders   StockistOrder[]
+}
+
+enum StockistOrderStatus {
+  REQUESTED // stockist submitted; awaiting owner
+  APPROVED // owner applied a scheme & generated a challan
+  REJECTED
+}
+
+// A stockist's wholesale purchase request. Owner applies a scheme (discount %
+// and/or free units), then a challan is generated.
+model StockistOrder {
+  id           String              @id @default(cuid())
+  stockistId   String
+  stockist     Stockist            @relation(fields: [stockistId], references: [id])
+  status       StockistOrderStatus @default(REQUESTED)
+  items        Json                @default("[]") // [{productId,name,qty,unitPrice}]
+  note         String?
+  schemeDiscountPct Decimal        @default(0) @db.Decimal(5, 2)
+  schemeFreeUnits   Int            @default(0)
+  schemeNote   String?
+  subtotal     Decimal             @default(0) @db.Decimal(12, 2)
+  total        Decimal             @default(0) @db.Decimal(12, 2)
+  challanId    String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([stockistId])
 }
 
 model Challan {

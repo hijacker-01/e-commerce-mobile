@@ -49,6 +49,44 @@ async function main() {
     },
   });
 
+  // In-store brand services the shop offers (owner can add more). Demo data.
+  const brandServices = [
+    { brand: 'Samsung', name: 'Samsung — authorized repairs & Galaxy warranty', hours: 'Same-day diagnostics · 1–2 day repairs' },
+    { brand: 'Apple', name: 'Apple iPhone & iPad service', hours: 'Screen/battery while-you-wait' },
+    { brand: 'OnePlus', name: 'OnePlus repairs & OxygenOS support', hours: '1–3 day turnaround' },
+    { brand: 'Xiaomi', name: 'Xiaomi / Redmi / POCO service', hours: 'Same-day diagnostics' },
+    { brand: 'OPPO', name: 'OPPO repairs & warranty claims', hours: '1–2 day turnaround' },
+    { brand: 'Vivo', name: 'Vivo / iQOO service', hours: 'Same-day diagnostics' },
+    { brand: 'Realme', name: 'Realme repairs & software help', hours: '1–2 day turnaround' },
+    { brand: 'Google', name: 'Google Pixel service & updates', hours: '2–4 day turnaround' },
+    { brand: 'Nothing', name: 'Nothing Phone repairs', hours: '2–4 day turnaround' },
+    { brand: 'Motorola', name: 'Motorola service & warranty', hours: '1–3 day turnaround' },
+    { brand: 'Sony', name: 'Sony Xperia & audio service', hours: '2–4 day turnaround' },
+    { brand: 'Asus', name: 'Asus / ROG Phone service', hours: '2–5 day turnaround' },
+    { brand: 'Nokia', name: 'Nokia / HMD repairs', hours: '1–3 day turnaround' },
+    { brand: 'boAt', name: 'boAt audio service & warranty', hours: 'While-you-wait checks' },
+    { brand: 'JBL', name: 'JBL audio service', hours: '1–3 day turnaround' },
+  ];
+  const serviceCount = await prisma.serviceCenter.count({
+    where: { shopId: shop.id },
+  });
+  if (serviceCount === 0) {
+    for (const s of brandServices) {
+      await prisma.serviceCenter.create({
+        data: {
+          shopId: shop.id,
+          brand: s.brand,
+          name: s.name,
+          hours: s.hours,
+          address: 'In-store · Voltora Care, MG Road, Pune',
+          phone: '9000000001',
+        },
+      });
+    }
+    // eslint-disable-next-line no-console
+    console.log(`Seeded ${brandServices.length} brand services.`);
+  }
+
   async function category(name: string, slug: string) {
     return prisma.category.upsert({
       where: { slug },
