@@ -617,6 +617,11 @@ async function main() {
     });
   }
 
+  // Every product gets a yearly-lowest baseline (= its current price).
+  await prisma.$executeRawUnsafe(
+    'UPDATE "Product" SET "lowestPrice" = "price" WHERE "lowestPrice" IS NULL',
+  );
+
   // Special Store demo deals (idempotent) — drop a few prices and record a
   // yearly-lowest below the special price for the "lowest price" badge.
   const specialCount = await prisma.specialOffer.count();
@@ -642,7 +647,7 @@ async function main() {
       });
       await prisma.product.update({
         where: { id: p.id },
-        data: { price: special, mrp: p.mrp ?? original },
+        data: { price: special, mrp: p.mrp ?? original, lowestPrice: lowest },
       });
     }
     // eslint-disable-next-line no-console

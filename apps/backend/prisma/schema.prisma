@@ -192,6 +192,7 @@ model Product {
   specs       Json             @default("{}")
   price       Decimal          @db.Decimal(12, 2)
   mrp         Decimal?         @db.Decimal(12, 2)
+  lowestPrice Decimal?         @db.Decimal(12, 2) // lowest selling price in the last year
   stockistPrice Decimal?       @db.Decimal(12, 2) // wholesale price for stockists
   hsnCode     String?
   gstRate     Decimal          @default(18) @db.Decimal(5, 2)

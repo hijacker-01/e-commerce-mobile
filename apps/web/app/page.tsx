@@ -21,6 +21,7 @@ interface Product {
   title: string;
   price: string;
   mrp?: string | null;
+  lowestPrice?: string | null;
   media?: string[];
   category?: Category | null;
   inventory?: { quantity: number } | null;
@@ -54,8 +55,17 @@ function discountPct(price: string, mrp?: string | null): number | null {
   return Math.round(((m - p) / m) * 100);
 }
 
-function PriceTag({ price, mrp }: { price: string; mrp?: string | null }) {
+function PriceTag({
+  price,
+  mrp,
+  lowestPrice,
+}: {
+  price: string;
+  mrp?: string | null;
+  lowestPrice?: string | null;
+}) {
   const pct = discountPct(price, mrp);
+  const low = lowestPrice ? Number(lowestPrice) : null;
   return (
     <div style={{ marginTop: 8 }}>
       <span className="our-price-tag">⚡ Our price</span>
@@ -70,6 +80,11 @@ function PriceTag({ price, mrp }: { price: string; mrp?: string | null }) {
           </>
         )}
       </div>
+      {low != null && (
+        <div className="yearly-low-mini">
+          📉 1-yr low: ₹{low.toLocaleString('en-IN')}
+        </div>
+      )}
     </div>
   );
 }
@@ -770,7 +785,7 @@ export default function Home() {
                       {p.brand} {p.model}
                     </div>
                   </Link>
-                  <PriceTag price={p.price} mrp={p.mrp} />
+                  <PriceTag price={p.price} mrp={p.mrp} lowestPrice={p.lowestPrice} />
                   <div
                     className={inStock ? 'stock-in' : 'stock-out'}
                     style={{ marginTop: 6, fontSize: 13 }}

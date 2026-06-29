@@ -16,6 +16,7 @@ interface Product {
   description?: string;
   price: string;
   mrp?: string | null;
+  lowestPrice?: string | null;
   media?: string[];
   specs: Record<string, unknown>;
   videoLinks: string[];
@@ -361,6 +362,12 @@ export default function ProductPage({
               <div className="shop-price-save">
                 You save ₹{(mrpNum - priceNum).toLocaleString('en-IN')} ({pct}%
                 off M.R.P.)
+              </div>
+            )}
+            {product.lowestPrice != null && (
+              <div className="yearly-low" style={{ marginTop: 10 }}>
+                📉 Lowest price in the last year: ₹
+                {Number(product.lowestPrice).toLocaleString('en-IN')}
               </div>
             )}
           </div>

@@ -23,6 +23,7 @@ export class ProductsService {
         specs: (dto.specs ?? {}) as Prisma.InputJsonValue,
         price: new Prisma.Decimal(dto.price),
         mrp: dto.mrp != null ? new Prisma.Decimal(dto.mrp) : undefined,
+        lowestPrice: new Prisma.Decimal(dto.price),
         stockistPrice:
           dto.stockistPrice != null
             ? new Prisma.Decimal(dto.stockistPrice)

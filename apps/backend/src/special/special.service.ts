@@ -48,8 +48,12 @@ export class SpecialService {
     });
     // Capture the genuine original price once (before it was ever specialised).
     const originalPrice = existing?.originalPrice ?? product.price;
-    // Yearly lowest = the lowest the special price has ever been.
-    const lowestPrice = Prisma.Decimal.min(sp, existing?.lowestPrice ?? sp);
+    // Yearly lowest = the lowest the price has ever dropped to.
+    const lowestPrice = Prisma.Decimal.min(
+      sp,
+      existing?.lowestPrice ?? sp,
+      product.lowestPrice ?? sp,
+    );
 
     await this.prisma.$transaction([
       this.prisma.specialOffer.upsert({
@@ -57,10 +61,11 @@ export class SpecialService {
         update: { specialPrice: sp, lowestPrice, isActive: true },
         create: { productId, specialPrice: sp, originalPrice, lowestPrice },
       }),
-      // Make the special price the effective price; keep MRP for the strike-through.
+      // Special price becomes the effective price; keep MRP for the
+      // strike-through and lower the product's tracked yearly-lowest.
       this.prisma.product.update({
         where: { id: productId },
-        data: { price: sp, mrp: product.mrp ?? originalPrice },
+        data: { price: sp, mrp: product.mrp ?? originalPrice, lowestPrice },
       }),
     ]);
     return { ok: true };
