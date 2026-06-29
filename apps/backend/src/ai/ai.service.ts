@@ -42,7 +42,9 @@ export class AiService {
     const baseURL =
       this.config.get<string>('GROQ_BASE_URL') ??
       'https://api.groq.com/openai/v1';
-    this.client = apiKey ? new OpenAI({ apiKey, baseURL }) : null;
+    this.client = apiKey
+      ? new OpenAI({ apiKey, baseURL, timeout: 20000, maxRetries: 1 })
+      : null;
     this.reasoningModel =
       this.config.get<string>('GROQ_MODEL_REASONING') ??
       'llama-3.3-70b-versatile';
@@ -150,13 +152,53 @@ export class AiService {
       'You are a concise, friendly support agent for an Indian electronics ' +
       'store. Use the order context when relevant; for product-fit questions ' +
       'give practical guidance. Keep replies short.';
-    const answer = await this.chatText(
-      `My recent orders: ${JSON.stringify(orders)}\n\nQuestion: ${question}`,
-      'support',
-      this.fastModel,
-      system,
-    );
-    return { answer };
+    // Never hard-fail: if the LLM is unavailable, fall back to a helpful,
+    // order-aware canned answer so support always responds.
+    try {
+      const answer = await this.chatText(
+        `My recent orders: ${JSON.stringify(orders)}\n\nQuestion: ${question}`,
+        'support',
+        this.fastModel,
+        system,
+      );
+      if (answer && answer.trim()) return { answer };
+    } catch (err) {
+      this.logger.warn(`AI support unavailable, using fallback: ${err}`);
+    }
+    return { answer: this.supportFallback(question, orders) };
+  }
+
+  /** Deterministic helpdesk answer when the LLM can't be reached. */
+  private supportFallback(
+    question: string,
+    orders: { number: string; status: string; total: unknown; paymentStatus: string }[],
+  ): string {
+    const q = question.toLowerCase();
+    const latest = orders[0];
+    if (/order|status|track|where|delivery|pickup|ready/.test(q)) {
+      if (!latest) {
+        return "You don't have any orders yet. Browse the shop and place one — full-price orders are usually ready for pickup in about 10 minutes (best windows 10 AM–12 PM and 8 PM–10 PM).";
+      }
+      return (
+        `Your latest order ${latest.number} is currently "${latest.status}" ` +
+        `(payment: ${latest.paymentStatus}). Pickup is from the store — ` +
+        'full-price orders in ~10 minutes; coupon/card-discount orders the next ' +
+        'day. Best pickup windows are 10 AM–12 PM and 8 PM–10 PM.'
+      );
+    }
+    if (/return|refund|replace/.test(q)) {
+      return 'You can request a return from My Orders once an order is Approved or Delivered — open the order and tap "Return". The shop reviews and approves it.';
+    }
+    if (/exchange|trade-in|trade in|buyback|old phone|old device/.test(q)) {
+      return 'For an exchange, use the Exchange page to get an instant buyback estimate. Bring the original bill/invoice and your Aadhaar card to the store to complete it.';
+    }
+    if (/coupon|offer|discount|deal/.test(q)) {
+      return 'Browse all codes on the Offers page, see the ones that fit your cart at checkout, or check the Special Store for our lowest deals. Paying by credit card gives an extra 5% off (up to ₹2,000).';
+    }
+    if (/pay|emi|upi|card|cod|cash/.test(q)) {
+      return 'We accept UPI, Credit Card (5% off), Debit Card, Online/Netbanking, Cash on pickup, and No-cost EMI. Pick one at checkout.';
+    }
+    return 'I can help with your orders, store pickup, returns, exchange, offers and payments. For anything else, please call the store at 9000000001.';
   }
 
   // --- helpers -------------------------------------------------------------

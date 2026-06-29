@@ -29,8 +29,14 @@ export default function SupportPage() {
     try {
       const r = await api.post<{ answer: string }>('/ai/support', { question });
       setMessages((m) => [...m, { role: 'ai', text: r.answer }]);
-    } catch (e) {
-      setMessages((m) => [...m, { role: 'ai', text: (e as Error).message }]);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        {
+          role: 'ai',
+          text: 'Support is temporarily unreachable. Please try again in a moment, or call the store at 9000000001.',
+        },
+      ]);
     } finally {
       setBusy(false);
     }
