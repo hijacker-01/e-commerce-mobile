@@ -31,4 +31,13 @@ export class OffersService {
       orderBy: { endsAt: 'asc' },
     });
   }
+
+  /** All offers (owner view — past, live and scheduled). */
+  listAll() {
+    return this.prisma.offer.findMany({ orderBy: { startsAt: 'desc' } });
+  }
+
+  remove(id: string) {
+    return this.prisma.offer.delete({ where: { id } });
+  }
 }

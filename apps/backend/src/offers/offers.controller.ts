@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { IsDateString, IsOptional, IsString } from 'class-validator';
 import { Role } from '@prisma/client';
 import { OffersService } from './offers.service';
@@ -31,8 +31,20 @@ export class OffersController {
   }
 
   @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Get('all')
+  all() {
+    return this.offers.listAll();
+  }
+
+  @Roles(Role.OWNER, Role.EMPLOYEE)
   @Post()
   create(@Body() dto: CreateOfferDto) {
     return this.offers.create(dto);
+  }
+
+  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.offers.remove(id);
   }
 }

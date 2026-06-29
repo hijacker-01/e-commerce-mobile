@@ -27,7 +27,10 @@ export default function CompareBar() {
         <strong>{ids.length}</strong> selected to compare
       </span>
       <div className="row" style={{ gap: 8 }}>
-        <button className="secondary" onClick={() => clearCompare()}>
+        <button
+          style={{ background: 'var(--accent)', color: '#fff', border: 'none' }}
+          onClick={() => clearCompare()}
+        >
           Clear
         </button>
         <button

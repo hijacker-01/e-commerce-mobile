@@ -41,6 +41,15 @@ export class ProductsService {
   }
 
   /** Lightweight lookups for the storefront filters & owner product form. */
+  /** Owner toggles merchandising flags (e.g. "New arrival"). */
+  setFlags(id: string, flags: { isNew?: boolean }) {
+    return this.prisma.product.update({
+      where: { id },
+      data: { isNew: flags.isNew },
+      select: { id: true, isNew: true },
+    });
+  }
+
   listCategories() {
     return this.prisma.category.findMany({
       select: { id: true, name: true, slug: true },

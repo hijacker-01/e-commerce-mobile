@@ -22,6 +22,7 @@ interface Product {
   price: string;
   mrp?: string | null;
   lowestPrice?: string | null;
+  isNew?: boolean;
   media?: string[];
   category?: Category | null;
   inventory?: { quantity: number } | null;
@@ -769,6 +770,7 @@ export default function Home() {
               return (
                 <div key={p.id} className="card">
                   {pct && <span className="discount-badge">-{pct}%</span>}
+                  {p.isNew && <span className="new-badge">✨ New</span>}
                   {isCustomer && (
                     <button
                       className={`wish-btn ${saved ? 'saved' : ''}`}
