@@ -437,6 +437,16 @@
   text-align: center;
   margin: 0 0 12px;
 }
+.vlogin .airy-notice {
+  background: var(--brand-tint, #eef1fb);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 0 0 20px;
+}
 
 @media (max-width: 520px) {
   .vlogin .vrole-grid {

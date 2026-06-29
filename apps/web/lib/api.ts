@@ -33,6 +33,20 @@ async function request<T>(path: string, opts: Opts = {}): Promise<T> {
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
+    // A 401 on an authenticated call means the session has expired (or the
+    // token is invalid). Clear it and send the user to log in again instead
+    // of surfacing a dead-end "Unauthorized" message mid-action.
+    if (res.status === 401 && token && typeof window !== 'undefined') {
+      clearToken();
+      localStorage.removeItem('role');
+      if (!window.location.pathname.startsWith('/login')) {
+        const next = encodeURIComponent(
+          window.location.pathname + window.location.search,
+        );
+        window.location.href = `/login?expired=1&next=${next}`;
+      }
+      throw new Error('Your session expired. Please sign in again.');
+    }
     const msg = data?.message ?? `Request failed (${res.status})`;
     throw new Error(Array.isArray(msg) ? msg.join(', ') : msg);
   }
