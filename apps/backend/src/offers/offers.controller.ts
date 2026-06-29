@@ -30,19 +30,19 @@ export class OffersController {
     return this.offers.listActive();
   }
 
-  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Roles(Role.OWNER)
   @Get('all')
   all() {
     return this.offers.listAll();
   }
 
-  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Roles(Role.OWNER)
   @Post()
   create(@Body() dto: CreateOfferDto) {
     return this.offers.create(dto);
   }
 
-  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Roles(Role.OWNER)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.offers.remove(id);

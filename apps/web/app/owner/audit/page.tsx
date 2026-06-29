@@ -18,8 +18,12 @@ export default function AuditPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!getToken() || getRole() !== 'OWNER') {
+    if (!getToken()) {
       router.push('/login');
+      return;
+    }
+    if (getRole() !== 'OWNER') {
+      router.push('/owner');
       return;
     }
     api.get<AuditEntry[]>('/audit').then(setItems).catch(() => {});

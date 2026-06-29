@@ -78,14 +78,15 @@ export class StockistOrdersController {
     return this.orders.placeOrder(user.id, dto);
   }
 
-  // ---- Owner / employee ----
-  @Roles(Role.OWNER, Role.EMPLOYEE)
+  // ---- Owner ----
+  // Wholesale pricing/scheme decisions are an owner control.
+  @Roles(Role.OWNER)
   @Get()
   listAll() {
     return this.orders.listAll();
   }
 
-  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Roles(Role.OWNER)
   @Post(':id/decide')
   decide(@Param('id') id: string, @Body() dto: DecideDto) {
     return this.orders.decide(id, dto);

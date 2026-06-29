@@ -27,9 +27,12 @@ export default function ArchivePage() {
   }
 
   useEffect(() => {
-    const role = getRole();
-    if (!getToken() || (role !== 'OWNER' && role !== 'EMPLOYEE')) {
+    if (!getToken()) {
       router.push('/login');
+      return;
+    }
+    if (getRole() !== 'OWNER') {
+      router.push('/owner');
       return;
     }
     load();

@@ -59,11 +59,13 @@ interface Summary {
 export default function OwnerPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Summary | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
   const router = useRouter();
 
-  function loadOrders() {
+  function loadOrders(owner: boolean) {
     api.get<Order[]>('/orders').then(setOrders).catch(() => {});
-    api.get<Summary>('/analytics/summary').then(setStats).catch(() => {});
+    // The revenue / GST summary is owner-only — employees don't see the money.
+    if (owner) api.get<Summary>('/analytics/summary').then(setStats).catch(() => {});
   }
 
   useEffect(() => {
@@ -72,7 +74,9 @@ export default function OwnerPage() {
       router.push('/login');
       return;
     }
-    loadOrders();
+    const owner = role === 'OWNER';
+    setIsOwner(owner);
+    loadOrders(owner);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,7 +84,7 @@ export default function OwnerPage() {
     try {
       await api.patch(`/orders/${id}/status`, { status });
       toast(`Order → ${status}`);
-      loadOrders();
+      loadOrders(isOwner);
     } catch (e) {
       toast((e as Error).message, 'error');
     }
@@ -103,44 +107,57 @@ export default function OwnerPage() {
 
   return (
     <main>
-      <h1>Owner dashboard</h1>
+      <h1>{isOwner ? 'Owner dashboard' : 'Employee console'}</h1>
+      {!isOwner && (
+        <p className="muted" style={{ marginTop: -6 }}>
+          Your tools for day-to-day shop operations — process orders, list
+          products, answer customers and handle returns.
+        </p>
+      )}
       <div className="row" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+        {/* Employee-safe operational tools */}
         <a className="btn" href="#add-product">
           ➕ Add product
         </a>
-        <Link className="btn secondary" href="/owner/stockist-orders">
-          Stockist orders
-        </Link>
-        <Link className="btn secondary" href="/owner/stockists">
-          Stockists &amp; challans
-        </Link>
-        <Link className="btn secondary" href="/owner/staff">
-          Employees &amp; stockists
-        </Link>
-        <Link className="btn secondary" href="/owner/credit">
-          Customer credit
-        </Link>
-        <Link className="btn secondary" href="/owner/special">
-          ✦ Special Store
-        </Link>
-        <Link className="btn secondary" href="/owner/storefront">
-          Storefront (lobby + services)
+        <Link className="btn secondary" href="/owner/questions">
+          Customer Q&amp;A
         </Link>
         <Link className="btn secondary" href="/owner/returns">
           Returns
         </Link>
-        <Link className="btn secondary" href="/owner/questions">
-          Customer Q&amp;A
-        </Link>
-        <Link className="btn secondary" href="/owner/archive">
-          Archive &amp; backup
-        </Link>
-        <Link className="btn secondary" href="/owner/audit">
-          Audit log
-        </Link>
+
+        {/* Owner-only controls (finance, pricing, staff, wholesale, audit) */}
+        {isOwner && (
+          <>
+            <Link className="btn secondary" href="/owner/stockist-orders">
+              Stockist orders
+            </Link>
+            <Link className="btn secondary" href="/owner/stockists">
+              Stockists &amp; challans
+            </Link>
+            <Link className="btn secondary" href="/owner/staff">
+              Employees &amp; stockists
+            </Link>
+            <Link className="btn secondary" href="/owner/credit">
+              Customer credit
+            </Link>
+            <Link className="btn secondary" href="/owner/special">
+              ✦ Special Store
+            </Link>
+            <Link className="btn secondary" href="/owner/storefront">
+              Storefront (lobby + services)
+            </Link>
+            <Link className="btn secondary" href="/owner/archive">
+              Archive &amp; backup
+            </Link>
+            <Link className="btn secondary" href="/owner/audit">
+              Audit log
+            </Link>
+          </>
+        )}
       </div>
 
-      {stats && (
+      {isOwner && stats && (
         <div className="grid" style={{ marginBottom: 24 }}>
           <div className="card">
             <div className="muted">Paid revenue</div>
@@ -228,7 +245,7 @@ export default function OwnerPage() {
       </table>
       {orders.length === 0 && <p className="muted">No orders.</p>}
 
-      <ProductCreator onCreated={() => loadOrders()} />
+      <ProductCreator onCreated={() => loadOrders(isOwner)} />
     </main>
   );
 }
