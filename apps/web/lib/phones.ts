@@ -179,8 +179,18 @@ export const EXCHANGE_QUESTIONS: ExchangeQuestion[] = [
     ],
   },
   {
+    key: 'age',
+    label: '5. How old is the device?',
+    options: [
+      { value: 'lt6', label: 'Under 6 months' },
+      { value: '6to12', label: '6–12 months' },
+      { value: '1to2', label: '1–2 years' },
+      { value: 'gt2', label: 'Over 2 years' },
+    ],
+  },
+  {
     key: 'faults',
-    label: '5. Any functional faults?',
+    label: '6. Any functional faults?',
     options: [
       { value: 'none', label: 'None' },
       { value: 'camera', label: 'Camera' },
@@ -191,7 +201,7 @@ export const EXCHANGE_QUESTIONS: ExchangeQuestion[] = [
   },
   {
     key: 'accessories',
-    label: '6. Bill, box & accessories',
+    label: '7. Bill, box & accessories',
     options: [
       { value: 'all', label: 'Bill + box + charger' },
       { value: 'bill', label: 'Bill only' },

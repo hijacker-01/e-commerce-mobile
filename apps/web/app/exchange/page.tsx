@@ -76,6 +76,7 @@ export default function ExchangePage() {
         condition,
         imei,
         details,
+        answers,
       });
       setMsg('Submitted ✓ — see the AI estimate below.');
       setImei('');
@@ -227,10 +228,20 @@ export default function ExchangePage() {
           <div className="muted">Condition: {x.condition}</div>
           {x.imei && <div className="muted">IMEI: {x.imei}</div>}
           {x.aiValue && (
-            <div className="price">AI estimate: ₹{x.aiValue}</div>
+            <div className="price">
+              Buyback estimate: ₹
+              {Number(x.aiValue).toLocaleString('en-IN')}
+            </div>
+          )}
+          {x.details && (
+            <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+              {x.details}
+            </div>
           )}
           {x.approvedValue && (
-            <div className="price">Approved: ₹{x.approvedValue}</div>
+            <div className="price">
+              Approved: ₹{Number(x.approvedValue).toLocaleString('en-IN')}
+            </div>
           )}
         </div>
       ))}

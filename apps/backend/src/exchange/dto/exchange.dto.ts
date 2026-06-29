@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -22,6 +23,12 @@ export class SubmitExchangeDto {
   @IsOptional()
   @IsString()
   details?: string; // variant + answers to the condition questions
+
+  // Structured condition answers (age, screen, battery, …) used to compute
+  // the deterministic buyback value.
+  @IsOptional()
+  @IsObject()
+  answers?: Record<string, string>;
 
   @IsOptional()
   @IsArray()
