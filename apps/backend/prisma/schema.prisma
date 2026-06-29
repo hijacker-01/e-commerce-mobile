@@ -203,6 +203,7 @@ model Product {
   // variantLabel is the human label for this specific variant ("256GB · Black").
   variantGroup String?
   variantLabel String?
+  isNew       Boolean          @default(false) // "New arrival" badge (owner-set)
   isActive    Boolean          @default(true)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt

@@ -967,6 +967,79 @@ th {
   position: relative;
 }
 
+/* "New arrival" badge on product cards */
+.new-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--success, #15803d);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  z-index: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Store-wide sale alert banner */
+.sale-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #1428a0, #7c5cff);
+  color: #fff;
+  padding: 0 14px;
+}
+.sale-alert-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  color: #fff;
+  text-decoration: none;
+  font-size: 14px;
+  overflow: hidden;
+}
+.sale-alert-tag {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 3px 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.sale-alert-text {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sale-alert-cta {
+  margin-left: auto;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sale-alert-x {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 6px;
+  opacity: 0.85;
+}
+.sale-alert-x:hover {
+  opacity: 1;
+}
+@media (max-width: 640px) {
+  .sale-alert-cta {
+    display: none;
+  }
+}
+
 /* ---------- Skeleton loading ---------- */
 .skeleton {
   border-radius: var(--radius);

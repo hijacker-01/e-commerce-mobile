@@ -78,6 +78,13 @@ export class ProductsController {
     return this.products.answerQuestion(questionId, answer, 'Store');
   }
 
+  // Toggle merchandising flags (New arrival).
+  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Patch(':id/flags')
+  setFlags(@Param('id') id: string, @Body('isNew') isNew?: boolean) {
+    return this.products.setFlags(id, { isNew });
+  }
+
   // Owner or an employee with 'product.write' may list items.
   @Roles(Role.OWNER, Role.EMPLOYEE)
   @RequirePermissions('product.write')
