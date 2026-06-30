@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+.git
+**/*.log
+apps/mobile
+apps/web/.next
+**/.env
+**/.env.*
+!**/.env.example

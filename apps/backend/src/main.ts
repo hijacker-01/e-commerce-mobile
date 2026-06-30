@@ -9,7 +9,13 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.setGlobalPrefix('api');
-  app.enableCors({ origin: true, credentials: true });
+  // In production set CORS_ORIGINS to a comma-separated allow-list (e.g. the
+  // Vercel URL). Unset = reflect any origin (fine for dev / Bearer-token auth).
+  const corsEnv = process.env.CORS_ORIGINS?.trim();
+  app.enableCors({
+    origin: corsEnv ? corsEnv.split(',').map((o) => o.trim()) : true,
+    credentials: true,
+  });
 
   // Serve uploaded product images at /uploads/<name> (outside the /api prefix).
   const uploadsDir = join(process.cwd(), 'uploads');
