@@ -6,11 +6,24 @@ import { useRouter } from 'next/navigation';
 import { api, getRole, getToken } from '../../../lib/api';
 import { toast } from '../../../lib/toast';
 
+type StaffRole = 'OWNER' | 'EMPLOYEE' | 'STOCKIST';
+
+const ROLE_LABEL: Record<StaffRole, string> = {
+  OWNER: 'Owner',
+  EMPLOYEE: 'Employee',
+  STOCKIST: 'Stockist',
+};
+const ROLE_COLOR: Record<StaffRole, string> = {
+  OWNER: '#15803d',
+  EMPLOYEE: '#1428a0',
+  STOCKIST: '#7c5cff',
+};
+
 interface Staff {
   id: string;
   name: string;
   phone: string;
-  role: 'EMPLOYEE' | 'STOCKIST';
+  role: StaffRole;
   isActive: boolean;
   permissions?: string[];
   createdAt?: string;
@@ -21,7 +34,7 @@ export default function StaffPage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'EMPLOYEE' | 'STOCKIST'>('EMPLOYEE');
+  const [role, setRole] = useState<StaffRole>('EMPLOYEE');
   const [gstin, setGstin] = useState('');
   const [saving, setSaving] = useState(false);
   const router = useRouter();
@@ -55,7 +68,7 @@ export default function StaffPage() {
         role,
         gstin: role === 'STOCKIST' && gstin.trim() ? gstin.trim() : undefined,
       });
-      toast(`${role === 'EMPLOYEE' ? 'Employee' : 'Stockist'} added ✓`);
+      toast(`${ROLE_LABEL[role]} added ✓`);
       setName('');
       setPhone('');
       setPassword('');
@@ -92,7 +105,7 @@ export default function StaffPage() {
       <div className="eyebrow" style={{ marginTop: 8 }}>
         Team
       </div>
-      <h1>Employees &amp; stockists</h1>
+      <h1>Owners, employees &amp; stockists</h1>
 
       {/* Add form */}
       <div className="card" style={{ marginTop: 8 }}>
@@ -102,12 +115,11 @@ export default function StaffPage() {
             <label>Role</label>
             <select
               value={role}
-              onChange={(e) =>
-                setRole(e.target.value as 'EMPLOYEE' | 'STOCKIST')
-              }
+              onChange={(e) => setRole(e.target.value as StaffRole)}
             >
               <option value="EMPLOYEE">Employee</option>
               <option value="STOCKIST">Stockist</option>
+              <option value="OWNER">Owner</option>
             </select>
           </div>
           <div style={{ flex: 1, minWidth: 160 }}>
@@ -145,12 +157,13 @@ export default function StaffPage() {
           onClick={add}
           disabled={!canAdd || saving}
         >
-          {saving ? 'Adding…' : `Add ${role === 'EMPLOYEE' ? 'employee' : 'stockist'}`}
+          {saving ? 'Adding…' : `Add ${ROLE_LABEL[role].toLowerCase()}`}
         </button>
         <p className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-          Employees get the standard staff permissions (approve orders, list
-          products, invoices, inventory, coupons, challans). Stockists get a
-          supply portal login.
+          Owners get full access to the console (finance, pricing, staff,
+          wholesale). Employees get the standard staff permissions (approve
+          orders, list products, invoices, inventory, coupons, challans).
+          Stockists get a supply portal login.
         </p>
       </div>
 
@@ -178,10 +191,7 @@ export default function StaffPage() {
                   <td>
                     <span
                       className="badge"
-                      style={{
-                        background:
-                          s.role === 'EMPLOYEE' ? '#1428a0' : '#7c5cff',
-                      }}
+                      style={{ background: ROLE_COLOR[s.role] ?? '#1428a0' }}
                     >
                       {s.role}
                     </span>
