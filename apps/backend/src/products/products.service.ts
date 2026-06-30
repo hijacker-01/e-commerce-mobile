@@ -103,6 +103,90 @@ export class ProductsService {
     };
   }
 
+  /**
+   * Self-learning suggestions for the "Add product" form. Everything is
+   * derived from products already in the catalogue, so each new brand / model
+   * / spec the owner types is automatically available next time. Also returns
+   * a template per brand+model so a known device auto-fills its details.
+   */
+  async catalogSuggest() {
+    const products = await this.prisma.product.findMany({
+      select: {
+        brand: true,
+        model: true,
+        title: true,
+        description: true,
+        price: true,
+        mrp: true,
+        specs: true,
+        categoryId: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const brands = new Set<string>();
+    const modelsByBrand: Record<string, Set<string>> = {};
+    const processors = new Set<string>();
+    const ram = new Set<string>();
+    const storage = new Set<string>();
+    const camera = new Set<string>();
+    // Latest product per brand|model becomes the auto-fill template.
+    const templates: Record<
+      string,
+      {
+        brand: string;
+        model: string;
+        title: string;
+        description: string | null;
+        price: number;
+        mrp: number | null;
+        categoryId: string;
+        specs: Record<string, unknown>;
+      }
+    > = {};
+
+    for (const p of products) {
+      if (p.brand) brands.add(p.brand);
+      if (p.brand && p.model) {
+        (modelsByBrand[p.brand] ??= new Set<string>()).add(p.model);
+      }
+      const s = (p.specs ?? {}) as Record<string, unknown>;
+      if (s.processor) processors.add(String(s.processor));
+      if (s.ram) ram.add(String(s.ram));
+      if (s.storage) storage.add(String(s.storage));
+      if (s.camera) camera.add(String(s.camera));
+
+      const key = `${p.brand}|${p.model}`.toLowerCase();
+      if (p.brand && p.model && !templates[key]) {
+        templates[key] = {
+          brand: p.brand,
+          model: p.model,
+          title: p.title,
+          description: p.description,
+          price: Number(p.price),
+          mrp: p.mrp != null ? Number(p.mrp) : null,
+          categoryId: p.categoryId,
+          specs: s,
+        };
+      }
+    }
+
+    const sort = (set: Set<string>) => [...set].sort();
+    const modelsOut: Record<string, string[]> = {};
+    for (const b of Object.keys(modelsByBrand)) modelsOut[b] = sort(modelsByBrand[b]);
+
+    return {
+      brands: sort(brands),
+      modelsByBrand: modelsOut,
+      processors: sort(processors),
+      ram: sort(ram),
+      storage: sort(storage),
+      camera: sort(camera),
+      templates: Object.values(templates),
+    };
+  }
+
   async findOne(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },

@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { api, getRole, getToken } from '../../lib/api';
 import { toast } from '../../lib/toast';
+import { PHONES } from '../../lib/phones';
 
 function statusColor(status: string): string {
   const s = status.toUpperCase();
@@ -262,6 +263,32 @@ interface Lookup {
   id: string;
   name: string;
 }
+interface CatalogTemplate {
+  brand: string;
+  model: string;
+  title: string;
+  description: string | null;
+  price: number;
+  mrp: number | null;
+  categoryId: string;
+  specs: Record<string, unknown>;
+}
+interface CatalogSuggest {
+  brands: string[];
+  modelsByBrand: Record<string, string[]>;
+  processors: string[];
+  ram: string[];
+  storage: string[];
+  camera: string[];
+  templates: CatalogTemplate[];
+}
+
+const DEFAULT_RAM = ['4GB', '6GB', '8GB', '12GB', '16GB'];
+const DEFAULT_STORAGE = ['64GB', '128GB', '256GB', '512GB', '1TB'];
+const DEFAULT_CAMERA = ['12MP', '48MP', '50MP', '64MP', '108MP', '200MP'];
+const uniqSort = (arr: string[]) =>
+  [...new Set(arr.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
 function ProductCreator({ onCreated }: { onCreated: () => void }) {
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
@@ -270,6 +297,11 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
   const [mrp, setMrp] = useState('');
   const [stockistPrice, setStockistPrice] = useState('');
   const [description, setDescription] = useState('');
+  // Key specs — also self-learning datalists.
+  const [processor, setProcessor] = useState('');
+  const [ram, setRam] = useState('');
+  const [storage, setStorage] = useState('');
+  const [camera, setCamera] = useState('');
   const [mediaList, setMediaList] = useState<string[]>([]);
   const [imgTab, setImgTab] = useState<'upload' | 'url'>('upload');
   const [urlInput, setUrlInput] = useState('');
@@ -280,6 +312,18 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
   const [categoryId, setCategoryId] = useState('');
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [suggest, setSuggest] = useState<CatalogSuggest | null>(null);
+  const [autoFilled, setAutoFilled] = useState(false);
+  // Extra spec keys (battery, etc.) carried over from a matched template.
+  const baseSpecsRef = useRef<Record<string, unknown>>({});
+  const autofilledKeyRef = useRef('');
+
+  function loadSuggest() {
+    api
+      .get<CatalogSuggest>('/products/meta/catalog-suggest')
+      .then(setSuggest)
+      .catch(() => {});
+  }
 
   // Load lookups so the owner picks from dropdowns (no pasting raw IDs).
   useEffect(() => {
@@ -291,7 +335,34 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
       setCategories(c);
       if (c[0]) setCategoryId(c[0].id);
     }).catch(() => {});
+    loadSuggest();
   }, []);
+
+  // Smart auto-fill: once brand + model match a device already in the
+  // catalogue, fill in any blank fields from it (never clobbering edits).
+  useEffect(() => {
+    if (!suggest || !brand.trim() || !model.trim()) return;
+    const key = `${brand}|${model}`.trim().toLowerCase();
+    if (autofilledKeyRef.current === key) return;
+    const t = suggest.templates.find(
+      (x) => `${x.brand}|${x.model}`.toLowerCase() === key,
+    );
+    if (!t) return;
+    autofilledKeyRef.current = key;
+    baseSpecsRef.current = t.specs ?? {};
+    setTitle((v) => v || t.title || '');
+    setDescription((v) => v || t.description || '');
+    setPrice((v) => v || (t.price ? String(t.price) : ''));
+    setMrp((v) => v || (t.mrp ? String(t.mrp) : ''));
+    const sp = t.specs ?? {};
+    if (sp.processor) setProcessor((v) => v || String(sp.processor));
+    if (sp.ram) setRam((v) => v || String(sp.ram));
+    if (sp.storage) setStorage((v) => v || String(sp.storage));
+    if (sp.camera) setCamera((v) => v || String(sp.camera));
+    setAutoFilled(true);
+    toast('✨ Auto-filled from your catalog — edit anything');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brand, model, suggest]);
 
   async function aiDraft() {
     setBusy(true);
@@ -350,6 +421,18 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
   async function create() {
     setSaving(true);
     try {
+      // Carry over extra spec keys from any matched template, then apply the
+      // four editable spec fields on top.
+      const specs: Record<string, unknown> = { ...baseSpecsRef.current };
+      const apply = (k: string, val: string) => {
+        if (val.trim()) specs[k] = val.trim();
+        else delete specs[k];
+      };
+      apply('processor', processor);
+      apply('ram', ram);
+      apply('storage', storage);
+      apply('camera', camera);
+
       await api.post('/products', {
         shopId,
         categoryId,
@@ -360,6 +443,7 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
         price: Number(price),
         mrp: mrp ? Number(mrp) : undefined,
         stockistPrice: stockistPrice ? Number(stockistPrice) : undefined,
+        specs: Object.keys(specs).length ? specs : undefined,
         media: mediaList,
       });
       toast('Product listed ✓');
@@ -371,8 +455,17 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
       setMrp('');
       setStockistPrice('');
       setDescription('');
+      setProcessor('');
+      setRam('');
+      setStorage('');
+      setCamera('');
       setMediaList([]);
       setUrlInput('');
+      setAutoFilled(false);
+      baseSpecsRef.current = {};
+      autofilledKeyRef.current = '';
+      // Re-pull suggestions so this brand / model / spec is instantly learned.
+      loadSuggest();
       onCreated();
     } catch (e) {
       toast((e as Error).message, 'error');
@@ -380,6 +473,28 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
       setSaving(false);
     }
   }
+
+  // Merge the shop's own catalogue (self-learning) with the curated phone
+  // list so suggestions are useful from day one.
+  const brandOptions = uniqSort([
+    ...(suggest?.brands ?? []),
+    ...PHONES.map((p) => p.brand),
+  ]);
+  const phoneBrand = PHONES.find(
+    (p) => p.brand.toLowerCase() === brand.trim().toLowerCase(),
+  );
+  const modelOptions = uniqSort([
+    ...(brand
+      ? suggest?.modelsByBrand[brand] ?? []
+      : Object.values(suggest?.modelsByBrand ?? {}).flat()),
+    ...(brand
+      ? phoneBrand?.models.map((m) => m.name) ?? []
+      : PHONES.flatMap((p) => p.models.map((m) => m.name))),
+  ]);
+  const ramOptions = uniqSort([...(suggest?.ram ?? []), ...DEFAULT_RAM]);
+  const storageOptions = uniqSort([...(suggest?.storage ?? []), ...DEFAULT_STORAGE]);
+  const cameraOptions = uniqSort([...(suggest?.camera ?? []), ...DEFAULT_CAMERA]);
+  const processorOptions = uniqSort(suggest?.processors ?? []);
 
   const canPublish = !!(shopId && categoryId && brand && model && title && price);
 
@@ -390,14 +505,39 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
       style={{ marginTop: 28, scrollMarginTop: 90 }}
     >
       <h2 style={{ marginTop: 0 }}>➕ List a product</h2>
+      <p className="field-hint" style={{ marginTop: -6 }}>
+        Start typing — brand, model and specs suggest from your catalogue. A
+        known device auto-fills its details; anything new you type is saved and
+        suggested next time.
+      </p>
       <div className="row">
         <div style={{ flex: 1 }}>
           <label>Brand</label>
-          <input value={brand} onChange={(e) => setBrand(e.target.value)} />
+          <input
+            list="pc-brands"
+            value={brand}
+            onChange={(e) => setBrand(e.target.value)}
+            placeholder="e.g. Samsung"
+          />
+          <datalist id="pc-brands">
+            {brandOptions.map((b) => (
+              <option key={b} value={b} />
+            ))}
+          </datalist>
         </div>
         <div style={{ flex: 1 }}>
           <label>Model</label>
-          <input value={model} onChange={(e) => setModel(e.target.value)} />
+          <input
+            list="pc-models"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder="e.g. Galaxy A55 5G"
+          />
+          <datalist id="pc-models">
+            {modelOptions.map((m) => (
+              <option key={m} value={m} />
+            ))}
+          </datalist>
         </div>
       </div>
       <button
@@ -408,6 +548,14 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
       >
         {busy ? 'Researching…' : '✨ AI auto-fill from brand + model'}
       </button>
+      {autoFilled && (
+        <p
+          className="field-hint"
+          style={{ color: 'var(--success, #15803d)', fontWeight: 600 }}
+        >
+          ✨ Auto-filled from your catalogue — review &amp; edit anything below.
+        </p>
+      )}
 
       <label>Title</label>
       <input value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -416,6 +564,63 @@ function ProductCreator({ onCreated }: { onCreated: () => void }) {
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
+
+      {/* Key specs — self-learning datalists */}
+      <label>Key specs</label>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 140 }}>
+          <input
+            list="pc-processor"
+            value={processor}
+            onChange={(e) => setProcessor(e.target.value)}
+            placeholder="Processor"
+          />
+          <datalist id="pc-processor">
+            {processorOptions.map((p) => (
+              <option key={p} value={p} />
+            ))}
+          </datalist>
+        </div>
+        <div style={{ flex: 1, minWidth: 110 }}>
+          <input
+            list="pc-ram"
+            value={ram}
+            onChange={(e) => setRam(e.target.value)}
+            placeholder="RAM"
+          />
+          <datalist id="pc-ram">
+            {ramOptions.map((r) => (
+              <option key={r} value={r} />
+            ))}
+          </datalist>
+        </div>
+        <div style={{ flex: 1, minWidth: 110 }}>
+          <input
+            list="pc-storage"
+            value={storage}
+            onChange={(e) => setStorage(e.target.value)}
+            placeholder="Storage"
+          />
+          <datalist id="pc-storage">
+            {storageOptions.map((s) => (
+              <option key={s} value={s} />
+            ))}
+          </datalist>
+        </div>
+        <div style={{ flex: 1, minWidth: 110 }}>
+          <input
+            list="pc-camera"
+            value={camera}
+            onChange={(e) => setCamera(e.target.value)}
+            placeholder="Camera"
+          />
+          <datalist id="pc-camera">
+            {cameraOptions.map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+        </div>
+      </div>
       <div className="row">
         <div style={{ flex: 1 }}>
           <label>Price (₹)</label>
