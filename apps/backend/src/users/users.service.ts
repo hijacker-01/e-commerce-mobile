@@ -37,10 +37,10 @@ export class UsersService {
     });
   }
 
-  /** Owner's staff roster — employees and stockists. */
+  /** Owner's staff roster — co-owners, employees and stockists. */
   listStaff() {
     return this.prisma.user.findMany({
-      where: { role: { in: [Role.EMPLOYEE, Role.STOCKIST] } },
+      where: { role: { in: [Role.OWNER, Role.EMPLOYEE, Role.STOCKIST] } },
       select: {
         id: true,
         name: true,
@@ -54,7 +54,7 @@ export class UsersService {
     });
   }
 
-  /** Owner provisions an employee or a stockist (with a login account). */
+  /** Owner provisions a co-owner, an employee or a stockist (with a login). */
   async createStaff(input: {
     name: string;
     phone: string;
@@ -63,8 +63,12 @@ export class UsersService {
     permissions?: string[];
     gstin?: string;
   }) {
-    if (input.role !== 'EMPLOYEE' && input.role !== 'STOCKIST') {
-      throw new BadRequestException('Role must be EMPLOYEE or STOCKIST');
+    if (
+      input.role !== 'OWNER' &&
+      input.role !== 'EMPLOYEE' &&
+      input.role !== 'STOCKIST'
+    ) {
+      throw new BadRequestException('Role must be OWNER, EMPLOYEE or STOCKIST');
     }
     const existing = await this.prisma.user.findUnique({
       where: { phone: input.phone },
@@ -72,6 +76,19 @@ export class UsersService {
     if (existing) throw new BadRequestException('Phone already registered');
 
     const passwordHash = await bcrypt.hash(input.password, 10);
+
+    if (input.role === 'OWNER') {
+      // Owners have full access by role — no granular permissions needed.
+      return this.prisma.user.create({
+        data: {
+          name: input.name,
+          phone: input.phone,
+          role: Role.OWNER,
+          passwordHash,
+        },
+        select: { id: true, name: true, phone: true, role: true, isActive: true },
+      });
+    }
 
     if (input.role === 'STOCKIST') {
       return this.prisma.user.create({
@@ -120,8 +137,23 @@ export class UsersService {
       include: { stockist: true },
     });
     if (!user) throw new NotFoundException('User not found');
-    if (user.role !== Role.EMPLOYEE && user.role !== Role.STOCKIST) {
+    if (
+      user.role !== Role.OWNER &&
+      user.role !== Role.EMPLOYEE &&
+      user.role !== Role.STOCKIST
+    ) {
       throw new BadRequestException('Only staff accounts can be removed here');
+    }
+    // Never let the shop be left without an owner who can sign in.
+    if (user.role === Role.OWNER) {
+      const otherActiveOwners = await this.prisma.user.count({
+        where: { role: Role.OWNER, isActive: true, id: { not: id } },
+      });
+      if (otherActiveOwners === 0) {
+        throw new BadRequestException(
+          'Cannot remove the last active owner — add another owner first',
+        );
+      }
     }
     try {
       if (user.stockist) {

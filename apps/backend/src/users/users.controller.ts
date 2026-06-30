@@ -38,7 +38,7 @@ class CreateStaffDto {
   @MinLength(6)
   password!: string;
 
-  @IsIn(['EMPLOYEE', 'STOCKIST'])
+  @IsIn(['OWNER', 'EMPLOYEE', 'STOCKIST'])
   role!: string;
 
   @IsOptional()
