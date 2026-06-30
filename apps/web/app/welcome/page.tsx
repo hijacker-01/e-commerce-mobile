@@ -47,7 +47,7 @@ function Poster() {
       <div className="poster-inner">
         <span className="poster-eyebrow">✦ AI-Verified Marketplace</span>
         <h1 className="poster-brand">
-          Voltora<span className="dot">·</span>Store
+          Prakash<span className="dot">·</span>Mobile
         </h1>
         <p className="poster-tag">The next era of smart electronics.</p>
       </div>

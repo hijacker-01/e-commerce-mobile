@@ -6,8 +6,8 @@ import CompareBar from '../components/CompareBar';
 import SaleAlert from '../components/SaleAlert';
 
 export const metadata = {
-  title: 'Voltora·Store — Smart Electronics',
-  description: 'Smart electronics marketplace with AI device intelligence',
+  title: 'Prakash Mobile — Smart Electronics',
+  description: 'Prakash Mobile, Mannat Complex, Gadarwara — smart electronics with AI device intelligence',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

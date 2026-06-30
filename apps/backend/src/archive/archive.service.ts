@@ -43,7 +43,7 @@ export class ArchiveService {
       .reduce((s, o) => s + Number(o.total), 0)
       .toFixed(2);
     const payload = {
-      format: 'voltora-orders-archive',
+      format: 'prakash-mobile-orders-archive',
       version: 1,
       generatedAt: new Date().toISOString(),
       scope,

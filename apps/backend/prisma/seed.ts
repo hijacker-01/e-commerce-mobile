@@ -42,9 +42,9 @@ async function main() {
     update: {},
     create: {
       ownerId: owner.id,
-      name: 'Bright Electronics',
+      name: 'Prakash Mobile',
       gstin: '27ABCDE1234F1Z5',
-      address: 'MG Road, Pune',
+      address: 'Mannat Complex, Gadarwara',
       phone: '9000000001',
     },
   });
@@ -78,7 +78,7 @@ async function main() {
           brand: s.brand,
           name: s.name,
           hours: s.hours,
-          address: 'In-store · Voltora Care, MG Road, Pune',
+          address: 'In-store · Prakash Mobile, Mannat Complex, Gadarwara',
           phone: '9000000001',
         },
       });
