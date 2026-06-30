@@ -5,6 +5,8 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
+  // native = local dev (Windows); debian = the Linux container on Railway.
+  binaryTargets   = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
