@@ -40,6 +40,13 @@ export class ProductsController {
     return this.products.listShops();
   }
 
+  // Self-learning autocomplete + auto-fill data for the Add-product form.
+  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Get('meta/catalog-suggest')
+  catalogSuggest() {
+    return this.products.catalogSuggest();
+  }
+
   @Roles(Role.OWNER, Role.EMPLOYEE)
   @Get('meta/questions')
   allQuestions(@Query('unanswered') unanswered?: string) {
