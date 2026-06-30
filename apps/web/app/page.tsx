@@ -362,9 +362,9 @@ export default function Home() {
       {/* ===== Bento stage ===== */}
       <div className="topbar">
         <div className="logo">
-          <span className="logo-mark">V</span>
+          <span className="logo-mark">P</span>
           <span className="logo-name">
-            Voltora<span className="dot">·</span>Store
+            Prakash<span className="dot">·</span>Mobile
           </span>
         </div>
         <div className="tb-search">

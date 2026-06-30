@@ -33,7 +33,7 @@ export class BackupService {
     const { passwordHash: _omit, ...account } = user as Record<string, unknown>;
 
     return {
-      format: 'voltora-account-backup',
+      format: 'prakash-mobile-account-backup',
       version: 1,
       generatedAt: new Date().toISOString(),
       userId,

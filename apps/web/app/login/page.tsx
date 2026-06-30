@@ -135,9 +135,9 @@ export default function LoginPage() {
 
   const brandbar = (
     <div className="brandbar">
-      <div className="lmark">V</div>
+      <div className="lmark">P</div>
       <span className="lname">
-        Voltora<span className="dot">·</span>Store
+        Prakash<span className="dot">·</span>Mobile
       </span>
     </div>
   );
@@ -169,7 +169,7 @@ export default function LoginPage() {
         {screen === 'role' && (
           <div className="panel">
             <span className="hero-emoji">⚡</span>
-            <h1 className="welcome">Welcome to Voltora</h1>
+            <h1 className="welcome">Welcome to Prakash Mobile</h1>
             <p className="sub">Choose how you&apos;ll be signing in.</p>
 
             <div className="vrole-grid">

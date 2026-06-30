@@ -46,7 +46,7 @@ export default function AccountPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `voltora-backup-${data.userId}-${new Date()
+      a.download = `prakash-mobile-backup-${data.userId}-${new Date()
         .toISOString()
         .slice(0, 10)}.json`;
       a.click();
