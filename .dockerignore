@@ -4,8 +4,6 @@
 **/.turbo
 .git
 **/*.log
-apps/mobile
-apps/web/.next
 **/.env
 **/.env.*
 !**/.env.example

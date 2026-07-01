@@ -1,0 +1,23 @@
+# Single public entrypoint. SITE_ADDRESS is set from the compose env:
+#   ":80"                -> HTTP only (use with a raw server IP)
+#   "shop.example.com"   -> automatic HTTPS via Let's Encrypt
+#   "1-2-3-4.sslip.io"   -> free HTTPS on your IP, no domain purchase
+{$SITE_ADDRESS} {
+	encode gzip
+
+	# API, uploaded images and websockets go to the NestJS service.
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle /uploads/* {
+		reverse_proxy api:4000
+	}
+	handle /socket.io/* {
+		reverse_proxy api:4000
+	}
+
+	# Everything else is the Next.js app.
+	handle {
+		reverse_proxy web:3000
+	}
+}
