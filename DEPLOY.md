@@ -1,106 +1,110 @@
-# Deploying Prakash Mobile (Vercel + Railway)
+# Deploying Prakash Mobile (one server, Docker Compose)
 
-This hosts the whole app on free / cheapest tiers:
+The whole app runs on a **single server** with one command. Cheapest and
+simplest for low traffic (~500 user-hours/month).
 
-| Piece | Where | Notes |
+```
+┌──────────────── one server (Docker) ────────────────┐
+│  Caddy  :80/:443  (reverse proxy + auto-HTTPS)       │
+│    ├─ /            → web   (Next.js, standalone)      │
+│    ├─ /api/*       → api   (NestJS)                   │
+│    ├─ /uploads/*   → api   (product images)           │
+│    └─ /socket.io/* → api   (bargain chat)             │
+│  postgres (pgvector) + volume   ·   uploads volume    │
+└──────────────────────────────────────────────────────┘
+```
+
+Everything is same-origin, so there's **no CORS and no domain baked into the
+build**. This exact stack has been built and smoke-tested end-to-end.
+
+## Cost / where to run it
+| Host | Spec | Price |
 |---|---|---|
-| Web (Next.js) | **Vercel** | Free Hobby plan |
-| API (NestJS) | **Railway** | Dockerfile build |
-| PostgreSQL **+ pgvector** | **Railway** | Must use the `pgvector/pgvector` image (the schema needs the `vector` extension) |
-| Uploads | **Railway volume** | Mounted at `/app/uploads` |
-| Redis | _not needed_ | The backend doesn't use it |
-| Meilisearch | _optional_ | Unset `MEILI_HOST` → automatic Postgres-search fallback |
+| **Hetzner** CX22 (recommended) | 2 vCPU / 4 GB, x86 | ~€4/mo |
+| **Oracle Cloud** Always-Free | 4 vCPU / 24 GB, ARM | **$0/mo** (images are multi-arch) |
+| DigitalOcean / Vultr / Contabo | 1-2 GB droplet | ~$5-6/mo |
 
-Everything is already production-ready in the repo: backend `Dockerfile`,
-`migrate deploy` on boot, env-driven CORS, absolute upload URLs, and
-`next build` verified green.
+Any Linux VM with **2 GB+ RAM** and ports **80/443** open works.
 
 ---
 
-## Part A — Backend on Railway
-
-### 1. Create the project + Postgres (pgvector)
-1. Go to <https://railway.app> → **New Project** → **Empty Project**.
-2. **+ New → Database → Add PostgreSQL** gives you a *plain* Postgres — that
-   one lacks pgvector. Instead delete it and add a **Docker image** service:
-   **+ New → Empty Service → Settings → Source → Docker Image** =
-   `pgvector/pgvector:pg16`.
-3. On that Postgres service → **Variables**, set:
-   ```
-   POSTGRES_USER=ecom
-   POSTGRES_PASSWORD=<a-strong-password>
-   POSTGRES_DB=ecommerce
-   ```
-4. **Settings → Volumes → Add Volume**, mount path `/var/lib/postgresql/data`.
-5. Note the internal connection string (Railway shows host/port). It will be
-   `postgresql://ecom:<password>@<postgres-host>:5432/ecommerce?schema=public`.
-
-### 2. Create the API service
-1. **+ New → GitHub Repo** → pick `hijacker-01/e-commerce-mobile`.
-2. **Settings → Build**:
-   - **Builder** = Dockerfile
-   - **Dockerfile Path** = `apps/backend/Dockerfile`
-   - **Root Directory** = leave blank (repo root is the build context).
-3. **Settings → Volumes → Add Volume**, mount path `/app/uploads`
-   (keeps uploaded product images across deploys).
-4. **Variables** (see `apps/backend/.env.example` for the full list):
-   ```
-   DATABASE_URL=postgresql://ecom:<password>@<postgres-host>:5432/ecommerce?schema=public
-   JWT_ACCESS_SECRET=<openssl rand -hex 32>
-   JWT_REFRESH_SECRET=<openssl rand -hex 32>
-   JWT_ACCESS_TTL=12h
-   JWT_REFRESH_TTL=30d
-   PORT=4000
-   PUBLIC_URL=https://<your-api-domain>      # fill after step 5
-   CORS_ORIGINS=https://<your-web-domain>    # fill after Part B
-   GROQ_API_KEY=<your groq key>              # optional, for AI features
-   ```
-5. **Settings → Networking → Generate Domain** → you get
-   `https://<something>.up.railway.app`. Put that into **PUBLIC_URL** and redeploy.
-   - The API base is then `https://<something>.up.railway.app/api`.
-   - Health check: open `…/api/health` → should return `{"status":"ok"}`.
-
-> On every deploy the container runs `prisma migrate deploy` automatically,
-> so the schema (incl. the pgvector extension) is created on first boot.
-
-### 3. Seed the first owner + demo data (one time)
-In the API service → **⋯ → Shell** (or `railway run`):
+## 1. Create the server + install Docker
+Spin up an Ubuntu 22.04/24.04 VM, open ports 22/80/443, then SSH in and run:
+```bash
+curl -fsSL https://get.docker.com | sh
 ```
-npm run prisma:seed -w apps/backend
+
+## 2. Get the code
+```bash
+git clone https://github.com/hijacker-01/e-commerce-mobile.git
+cd e-commerce-mobile
 ```
-Default logins (CHANGE THE PASSWORDS after first sign-in):
+(Private repo → use a GitHub Personal Access Token as the password, or add a
+deploy key.)
+
+## 3. Configure
+```bash
+cp .env.prod.example .env.prod
+nano .env.prod
+```
+Fill in:
+```ini
+# HTTP on the raw IP (quickest):
+SITE_ADDRESS=:80
+PUBLIC_URL=http://YOUR_SERVER_IP
+
+# …or free HTTPS with no domain (replace dots with dashes):
+# SITE_ADDRESS=203-0-113-5.sslip.io
+# PUBLIC_URL=https://203-0-113-5.sslip.io
+
+# …or your own domain (point its A record at the server first):
+# SITE_ADDRESS=shop.example.com
+# PUBLIC_URL=https://shop.example.com
+
+POSTGRES_PASSWORD=<openssl rand -hex 16>
+JWT_ACCESS_SECRET=<openssl rand -hex 32>
+JWT_REFRESH_SECRET=<openssl rand -hex 32>
+GROQ_API_KEY=            # optional, enables the AI assistant
+```
+> `PUBLIC_URL` **must** match `SITE_ADDRESS` — it's how uploaded product-image
+> links are built. With a domain/sslip.io you get automatic HTTPS from Caddy.
+
+## 4. Launch (build + start everything)
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+The API applies all DB migrations (incl. the pgvector extension) on boot.
+
+## 5. Seed the first data (one time)
+```bash
+docker compose -f docker-compose.prod.yml exec api npm run prisma:seed:prod
+```
+Creates the shop + demo catalogue and these logins (**change the passwords
+after first sign-in**):
 `9000000001` owner · `9000000003` employee · `9000000002` stockist — all `password123`.
 
----
-
-## Part B — Web on Vercel
-
-1. <https://vercel.com> → **Add New → Project** → import the same GitHub repo.
-2. **Root Directory** = `apps/web` (click *Edit* and select it).
-   Framework preset auto-detects **Next.js**.
-3. **Environment Variables**:
-   ```
-   NEXT_PUBLIC_API_URL = https://<your-api-domain>     (no /api, no trailing slash)
-   ```
-4. **Deploy.** You get `https://<project>.vercel.app`.
-5. Go back to Railway → API → set `CORS_ORIGINS` to that Vercel URL → redeploy.
-
-Done — open the Vercel URL and sign in.
+## 6. Open it
+- `http://YOUR_SERVER_IP` (or your https URL). Done — it's live.
 
 ---
 
-## Adding a custom domain later
-- **Vercel**: Project → Domains → add `yourshop.com` → follow DNS records.
-- **Railway**: API service → Networking → Custom Domain (e.g. `api.yourshop.com`),
-  then update `PUBLIC_URL` and the web's `NEXT_PUBLIC_API_URL`, and add the
-  apex/web domain to `CORS_ORIGINS`.
+## Day-2 operations
+```bash
+# Update after pushing changes
+git pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
-## Turning Meilisearch on (optional, later)
-Add a Railway Docker service `getmeili/meilisearch:v1.7` with a volume at
-`/meili_data` and `MEILI_MASTER_KEY=<key>`, then set `MEILI_HOST` +
-`MEILI_MASTER_KEY` on the API and hit `POST /api/search/reindex` once.
+# Logs / status
+docker compose -f docker-compose.prod.yml logs -f api
+docker compose -f docker-compose.prod.yml ps
 
-## Cost
-Vercel Hobby = free. Railway = usage-based (~$5 trial credit, then a few $/mo
-for the API + Postgres on the smallest sizes). No Redis, Meili optional → keeps
-it to two small services.
+# Backup the database
+docker compose -f docker-compose.prod.yml exec postgres \
+  pg_dump -U ecom ecommerce > backup-$(date +%F).sql
+```
+Data lives in Docker volumes (`pgdata`, `uploads`) and survives restarts and
+redeploys. Uploaded images persist in the `uploads` volume.
+
+## Optional: turn on Meilisearch later
+Add a `meilisearch` service (`getmeili/meilisearch:v1.7`) + volume, set
+`MEILI_HOST`/`MEILI_MASTER_KEY` on the API, and hit `POST /api/search/reindex`
+once. Until then the app uses Postgres search automatically.
