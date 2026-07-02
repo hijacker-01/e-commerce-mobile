@@ -17,14 +17,17 @@ simplest for low traffic (~500 user-hours/month).
 Everything is same-origin, so there's **no CORS and no domain baked into the
 build**. This exact stack has been built and smoke-tested end-to-end.
 
-## Cost / where to run it
-| Host | Spec | Price |
-|---|---|---|
-| **Hetzner** CX22 (recommended) | 2 vCPU / 4 GB, x86 | ~€4/mo |
-| **Oracle Cloud** Always-Free | 4 vCPU / 24 GB, ARM | **$0/mo** (images are multi-arch) |
-| DigitalOcean / Vultr / Contabo | 1-2 GB droplet | ~$5-6/mo |
+## Cost / where to run it — **host in an India region** (customers are in India)
+| Host | India region | Spec | Price |
+|---|---|---|---|
+| **Oracle Cloud** Always-Free (recommended) | **Mumbai / Hyderabad** | up to 4 vCPU / 24 GB, ARM | **$0/mo** |
+| **Vultr** | **Mumbai** | 1-2 GB | ~$5-10/mo |
+| **DigitalOcean** | **Bangalore (BLR1)** | 2 GB droplet | ~$12/mo |
+| **AWS Lightsail** | **Mumbai (ap-south-1)** | 2 GB | ~$10/mo |
 
-Any Linux VM with **2 GB+ RAM** and ports **80/443** open works.
+Any Linux VM with **2 GB+ RAM** and ports **80/443** open works. Pick an
+**India datacentre** for low latency. (Hetzner is not used — it has no India
+region.) All images are multi-arch, so Oracle's free ARM VM works fine.
 
 ---
 
