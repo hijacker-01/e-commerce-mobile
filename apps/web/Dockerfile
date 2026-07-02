@@ -14,7 +14,7 @@ RUN npm ci --ignore-scripts
 COPY . .
 # Same-origin default (empty) works behind Caddy on a single server.
 # For Railway/split-service deploys, pass --build-arg NEXT_PUBLIC_API_URL=https://api-xxx.railway.app
-ARG NEXT_PUBLIC_API_URL=""
+ARG NEXT_PUBLIC_API_URL="https://prakash-mobiles.up.railway.app"
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build -w apps/web
