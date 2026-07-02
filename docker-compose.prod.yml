@@ -20,6 +20,9 @@ services:
       - api
 
   web:
+    # Prebuilt by GitHub Actions → server just pulls it (no building on the
+    # server). `build:` stays so you *can* build locally if you ever want to.
+    image: ghcr.io/hijacker-01/prakash-web:latest
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -34,6 +37,7 @@ services:
       - api
 
   api:
+    image: ghcr.io/hijacker-01/prakash-api:latest
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
