@@ -12,9 +12,10 @@ COPY packages/shared/package.json packages/shared/package.json
 # --ignore-scripts: skip other workspaces' postinstall (not needed to build web).
 RUN npm ci --ignore-scripts
 COPY . .
-# Empty API URL => the browser calls /api, /uploads, /socket.io on the same
-# origin; the reverse proxy routes them to the API. No domain baked in.
-ENV NEXT_PUBLIC_API_URL=""
+# Same-origin default (empty) works behind Caddy on a single server.
+# For Railway/split-service deploys, pass --build-arg NEXT_PUBLIC_API_URL=https://api-xxx.railway.app
+ARG NEXT_PUBLIC_API_URL=""
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build -w apps/web
 
