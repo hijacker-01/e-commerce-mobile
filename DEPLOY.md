@@ -72,9 +72,23 @@ GROQ_API_KEY=            # optional, enables the AI assistant
 > `PUBLIC_URL` **must** match `SITE_ADDRESS` — it's how uploaded product-image
 > links are built. With a domain/sslip.io you get automatic HTTPS from Caddy.
 
-## 4. Launch (build + start everything)
+## 4. Pull the prebuilt images & start (no building on the server)
+The images are built for you by **GitHub Actions** (`.github/workflows/build-images.yml`)
+and published to GHCR — the server only pulls them.
+
+**First, make the two packages pullable.** After the workflow's first run
+(Actions tab → "Build & push images"), open your GitHub **Packages**, and for
+both `prakash-web` and `prakash-api` either:
+- set **Package visibility → Public** (simplest, then no login needed), **or**
+- keep them private and log the server in once:
+  ```bash
+  echo <YOUR_GITHUB_PAT> | docker login ghcr.io -u hijacker-01 --password-stdin
+  ```
+
+Then:
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 ```
 The API applies all DB migrations (incl. the pgvector extension) on boot.
 
@@ -93,8 +107,9 @@ after first sign-in**):
 
 ## Day-2 operations
 ```bash
-# Update after pushing changes
-git pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Update after pushing code (CI rebuilds the images; the server just pulls)
+docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 # Logs / status
 docker compose -f docker-compose.prod.yml logs -f api
