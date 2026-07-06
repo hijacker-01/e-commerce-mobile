@@ -1836,6 +1836,15 @@ th {
   display: flex;
   gap: 8px;
 }
+.bargain-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, #fff);
+  padding: 1px 8px;
+  border-radius: 999px;
+}
 @media (max-width: 640px) {
   .cart-line-qty {
     flex: 1 1 100%;

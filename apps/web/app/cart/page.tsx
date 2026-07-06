@@ -9,6 +9,8 @@ interface CartItem {
   productId: string;
   title: string;
   unitPrice: string;
+  listPrice?: string;
+  bargained?: boolean;
   quantity: number;
   lineTotal: string;
 }
@@ -105,6 +107,15 @@ export default function CartPage() {
                   <div className="cart-line-title">{i.title}</div>
                   <div className="cart-line-price">
                     ₹{i.unitPrice} <span className="muted">each</span>
+                    {i.bargained && i.listPrice && (
+                      <>
+                        {' '}
+                        <span className="mrp" style={{ fontSize: 12 }}>
+                          ₹{i.listPrice}
+                        </span>{' '}
+                        <span className="bargain-tag">💬 Bargain price</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="cart-line-qty">

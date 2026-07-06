@@ -13,12 +13,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/order.dto';
 import { AuthUser } from '../auth/decorators/current-user.decorator';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ChatService } from '../chat/chat.service';
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly chat: ChatService,
   ) {}
 
   /** Customer places an order; starts as REQUESTED, awaiting approval. */
@@ -32,18 +34,23 @@ export class OrdersService {
     }
 
     const priceById = new Map(products.map((p) => [p.id, p]));
+    // Bargain prices the owner accepted for this customer override list price.
+    const bargains = await this.chat.acceptedPricesFor(customerId, productIds);
     let subtotal = new Prisma.Decimal(0);
     let gstAmount = new Prisma.Decimal(0);
 
     const items = dto.items.map((item) => {
       const product = priceById.get(item.productId)!;
-      const lineTotal = product.price.mul(item.quantity);
+      const bargain = bargains.get(item.productId);
+      const unitPrice =
+        bargain && bargain.lt(product.price) ? bargain : product.price;
+      const lineTotal = unitPrice.mul(item.quantity);
       subtotal = subtotal.add(lineTotal);
       gstAmount = gstAmount.add(lineTotal.mul(product.gstRate).div(100));
       return {
         productId: item.productId,
         quantity: item.quantity,
-        unitPrice: product.price,
+        unitPrice,
         gstRate: product.gstRate,
       };
     });

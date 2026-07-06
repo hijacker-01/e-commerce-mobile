@@ -54,6 +54,36 @@ export class ChatService {
     });
   }
 
+  /**
+   * The accepted bargain price (if any) for each of the given products, for a
+   * specific customer. Uses the most recent staff-ACCEPTED offer in that
+   * customer's thread for the product. Returned prices apply only to that
+   * customer's own cart/orders.
+   */
+  async acceptedPricesFor(
+    customerId: string,
+    productIds: string[],
+  ): Promise<Map<string, Prisma.Decimal>> {
+    const map = new Map<string, Prisma.Decimal>();
+    if (productIds.length === 0) return map;
+    const msgs = await this.prisma.message.findMany({
+      where: {
+        offerStatus: OfferMessageStatus.ACCEPTED,
+        offerAmount: { not: null },
+        thread: { customerId, productId: { in: productIds } },
+      },
+      include: { thread: { select: { productId: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    for (const m of msgs) {
+      const pid = m.thread.productId;
+      if (pid && m.offerAmount != null && !map.has(pid)) {
+        map.set(pid, m.offerAmount);
+      }
+    }
+    return map;
+  }
+
   async respondOffer(messageId: string, status: OfferMessageStatus) {
     const msg = await this.prisma.message.findUnique({
       where: { id: messageId },

@@ -1,10 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ChatService } from '../chat/chat.service';
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chat: ChatService,
+  ) {}
 
   /** Get the user's cart with line totals + grand total. */
   async get(userId: string) {
@@ -15,15 +19,27 @@ export class CartService {
       include: { items: { include: { product: true } } },
     });
 
+    // Apply any bargain prices the owner accepted for THIS customer.
+    const bargains = await this.chat.acceptedPricesFor(
+      userId,
+      cart.items.map((i) => i.productId),
+    );
+
     let subtotal = new Prisma.Decimal(0);
     const items = cart.items.map((item) => {
-      const lineTotal = item.product.price.mul(item.quantity);
+      const bargain = bargains.get(item.productId);
+      // Use the accepted offer only when it beats the list price.
+      const isBargained = !!bargain && bargain.lt(item.product.price);
+      const unit = isBargained ? bargain! : item.product.price;
+      const lineTotal = unit.mul(item.quantity);
       subtotal = subtotal.add(lineTotal);
       return {
         id: item.id,
         productId: item.productId,
         title: item.product.title,
-        unitPrice: item.product.price.toString(),
+        unitPrice: unit.toString(),
+        listPrice: item.product.price.toString(),
+        bargained: isBargained,
         quantity: item.quantity,
         lineTotal: lineTotal.toString(),
       };
