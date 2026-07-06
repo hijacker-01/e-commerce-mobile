@@ -160,9 +160,42 @@ h3 {
   margin-left: auto;
 }
 
+/* Right-hand group in the top bar (cart + more/menu toggle). */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-actions .nav-toggle {
+  margin-left: 0;
+}
+/* Always-visible "Cart" pill, sits just left of the ☰ "more" toggle. */
+.nav-cart-top {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: transparent;
+}
+.nav-cart-top:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 @media (max-width: 760px) {
   .nav {
     flex-wrap: wrap;
+  }
+  .nav-actions {
+    margin-left: auto;
+  }
+  .nav-cart-top {
+    display: inline-flex;
   }
   .nav-toggle {
     display: inline-flex;
@@ -1579,4 +1612,118 @@ th {
   font-size: 11px;
   font-weight: 600;
   color: #92600a;
+}
+
+/* ---------- Radial quarter-circle "speed dial" menu (bottom-right) ---------- */
+.radial {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 60;
+}
+/* Tap-away layer that closes the fan (sits behind the items + FAB). */
+.radial-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: default;
+}
+/* The main button that opens/closes the fan. */
+.radial-fab {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 62px;
+  height: 62px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 10px 26px rgba(20, 40, 160, 0.4);
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.28s var(--ease), background 0.2s var(--ease);
+}
+.radial-fab:hover {
+  background: var(--accent-hover);
+}
+.radial.open .radial-fab {
+  transform: rotate(90deg) scale(1.06);
+  box-shadow: 0 14px 32px rgba(20, 40, 160, 0.5);
+}
+.radial-fab-ic {
+  font-size: 22px;
+  line-height: 1;
+}
+.radial-fab-tx {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.radial.open .radial-fab-tx {
+  display: none;
+}
+/* Each fanned-out feature pill. Anchored at the FAB, flung to (--x,--y). */
+.radial-item {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 15px 7px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--text);
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.18);
+  transform-origin: right center;
+  transform: translate(0, 0) scale(0.2);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.34s cubic-bezier(0.18, 0.9, 0.25, 1.2),
+    opacity 0.24s var(--ease), background 0.16s var(--ease),
+    color 0.16s var(--ease);
+}
+.radial.open .radial-item {
+  transform: translate(var(--x), var(--y)) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+}
+.radial-item:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.radial-ic {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 15px;
+  background: var(--brand-tint);
+}
+.radial-item:hover .radial-ic {
+  background: rgba(255, 255, 255, 0.22);
+}
+.radial-lb {
+  font-size: 14px;
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .radial-item,
+  .radial-fab {
+    transition-duration: 0.01ms;
+  }
 }

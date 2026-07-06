@@ -55,14 +55,22 @@ export default function Nav() {
       <Link href="/" className="brand">
         Prakash<span style={{ color: 'var(--accent)' }}>·</span>Mobile
       </Link>
-      <button
-        className="nav-toggle"
-        aria-label="Toggle menu"
-        aria-expanded={menuOpen}
-        onClick={() => setMenuOpen((v) => !v)}
-      >
-        {menuOpen ? '✕' : '☰'}
-      </button>
+      <div className="nav-actions">
+        {authed && role === 'CUSTOMER' && (
+          <Link href="/cart" className="nav-cart-top" aria-label="Cart">
+            🛒 Cart
+            {cartCount > 0 && <span className="nav-count">{cartCount}</span>}
+          </Link>
+        )}
+        <button
+          className="nav-toggle"
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
+      </div>
       <div
         className={`nav-links ${menuOpen ? 'open' : ''}`}
         onClick={() => setMenuOpen(false)}

@@ -4,6 +4,7 @@ import Nav from '../components/Nav';
 import Toaster from '../components/Toaster';
 import CompareBar from '../components/CompareBar';
 import SaleAlert from '../components/SaleAlert';
+import RadialMenu from '../components/RadialMenu';
 
 export const metadata = {
   title: 'Prakash Mobile — Smart Electronics',
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SaleAlert />
         <div className="container">{children}</div>
         <CompareBar />
+        <RadialMenu />
         <Toaster />
       </body>
     </html>
