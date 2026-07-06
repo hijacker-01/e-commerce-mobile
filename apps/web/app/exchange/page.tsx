@@ -118,60 +118,56 @@ export default function ExchangePage() {
           </p>
         )}
 
-        {/* Smart phone picker */}
+        {/* Smart phone picker — pick a suggestion or type your own device if
+            it isn't in our list. */}
         <div className="row" style={{ flexWrap: 'wrap', gap: 12 }}>
           <div style={{ flex: 1, minWidth: 150 }}>
             <label>Brand</label>
-            <select
+            <input
+              list="ex-brands"
+              placeholder="Select or type…"
               value={brand}
-              onChange={(e) => {
-                setBrand(e.target.value);
-                setModel('');
-                setVariant('');
-              }}
-            >
-              <option value="">Select brand…</option>
+              onChange={(e) => setBrand(e.target.value)}
+            />
+            <datalist id="ex-brands">
               {PHONES.map((b) => (
-                <option key={b.brand} value={b.brand}>
-                  {b.brand}
-                </option>
+                <option key={b.brand} value={b.brand} />
               ))}
-            </select>
+            </datalist>
           </div>
           <div style={{ flex: 1, minWidth: 150 }}>
             <label>Model</label>
-            <select
+            <input
+              list="ex-models"
+              placeholder="Select or type…"
               value={model}
-              disabled={!brand}
-              onChange={(e) => {
-                setModel(e.target.value);
-                setVariant('');
-              }}
-            >
-              <option value="">Select model…</option>
+              onChange={(e) => setModel(e.target.value)}
+            />
+            <datalist id="ex-models">
               {models.map((m) => (
-                <option key={m.name} value={m.name}>
-                  {m.name}
-                </option>
+                <option key={m.name} value={m.name} />
               ))}
-            </select>
+            </datalist>
           </div>
           <div style={{ flex: 1, minWidth: 150 }}>
             <label>Variant</label>
-            <select
+            <input
+              list="ex-variants"
+              placeholder="e.g. 8GB/128GB"
               value={variant}
-              disabled={!model}
               onChange={(e) => setVariant(e.target.value)}
-            >
-              <option value="">Select variant…</option>
+            />
+            <datalist id="ex-variants">
               {variants.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
+                <option key={v} value={v} />
               ))}
-            </select>
+            </datalist>
           </div>
         </div>
+        <p className="field-hint muted" style={{ fontSize: 12, marginTop: 8 }}>
+          Don’t see your exact phone? Just type the brand, model and variant
+          yourself — we’ll still value it.
+        </p>
 
         {/* Condition questions */}
         <div className="divider" />
