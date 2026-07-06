@@ -121,7 +121,7 @@ export default function Nav() {
             Logout
           </button>
         ) : (
-          <Link href="/login" className="btn">
+          <Link href="/welcome" className="btn">
             Login
           </Link>
         )}

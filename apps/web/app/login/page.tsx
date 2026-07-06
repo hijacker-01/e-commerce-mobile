@@ -51,7 +51,7 @@ const HOME_FOR: Record<string, string> = {
   OWNER: '/owner',
   EMPLOYEE: '/owner',
   STOCKIST: '/stockist',
-  CUSTOMER: '/welcome',
+  CUSTOMER: '/',
 };
 
 type Screen = 'role' | 'login' | 'signup';
