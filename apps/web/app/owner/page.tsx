@@ -126,6 +126,9 @@ export default function OwnerPage() {
         <Link className="btn secondary" href="/owner/returns">
           Returns
         </Link>
+        <Link className="btn secondary" href="/chat">
+          💬 Bargains
+        </Link>
 
         {/* Owner-only controls (finance, pricing, staff, wholesale, audit) */}
         {isOwner && (

@@ -101,6 +101,9 @@ export default function Nav() {
           <Link href="/exchange" className={cls('/exchange')}>Exchange</Link>
         )}
         {authed && <Link href="/account" className={cls('/account')}>Account</Link>}
+        {(role === 'OWNER' || role === 'EMPLOYEE') && (
+          <Link href="/chat" className={cls('/chat')}>Bargains</Link>
+        )}
         {role === 'OWNER' && (
           <Link href="/owner" className={cls('/owner')}>Owner</Link>
         )}
