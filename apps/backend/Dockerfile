@@ -14,8 +14,9 @@ RUN npm install
 
 COPY apps/backend/ ./
 RUN npx prisma generate && npm run build
-# Compile the seed to plain JS so it runs on the prod Node runtime (no ts-node).
-RUN npx tsc prisma/seed.ts --outDir dist/prisma --rootDir prisma \
+# Compile the seed + fresh-start scripts to plain JS so they run on the prod
+# Node runtime (no ts-node).
+RUN npx tsc prisma/seed.ts prisma/fresh-start.ts --outDir dist/prisma --rootDir prisma \
   --module commonjs --target ES2021 --esModuleInterop --skipLibCheck --resolveJsonModule
 
 # ---- runtime ----
