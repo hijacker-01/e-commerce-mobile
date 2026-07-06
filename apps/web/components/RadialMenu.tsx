@@ -52,14 +52,17 @@ export default function RadialMenu() {
   });
 
   const n = items.length;
-  const R = 158; // arc radius (px)
-  // Fan each item along a quarter circle from ~straight-up to ~straight-left,
-  // slightly inset from the axes so pills clear the FAB and the screen edge.
+  // Stack the pills up the right edge with a fixed vertical gap (≥ pill height)
+  // so they never overlap, and curve them leftward as they rise for a fanned,
+  // "spreading" feel. Even spacing = clean on the shop page and everywhere.
+  const GAP = 54; // vertical distance between neighbouring pills (px)
+  const SPREAD = 118; // how far the top of the fan leans left (px)
   const point = (i: number) => {
-    const t = n === 1 ? 0.5 : i / (n - 1);
-    const deg = 90 + t * 88; // 90° (up) → 178° (left)
-    const rad = (deg * Math.PI) / 180;
-    return { x: Math.cos(rad) * R, y: -Math.sin(rad) * R };
+    const step = i + 1; // 1..n, item 1 sits just above the FAB
+    const t = n <= 1 ? 1 : step / n; // 0..1 up the fan
+    const y = -step * GAP;
+    const x = -(26 + Math.sin((t * Math.PI) / 2) * SPREAD);
+    return { x, y };
   };
 
   return (
