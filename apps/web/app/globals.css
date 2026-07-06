@@ -1791,3 +1791,103 @@ th {
   text-transform: uppercase;
   color: var(--success);
 }
+
+/* ---------- Responsive cart lines (replaces the wide table on mobile) ---------- */
+.cart-lines {
+  padding: 8px;
+}
+.cart-line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.cart-line:last-child {
+  border-bottom: none;
+}
+.cart-line-info {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.cart-line-title {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.cart-line-price {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 2px;
+}
+.cart-line-qty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cart-line-total {
+  font-weight: 700;
+  font-size: 15px;
+  min-width: 74px;
+  text-align: right;
+}
+.cart-line-actions {
+  display: flex;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .cart-line-qty {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+  .cart-line-actions {
+    flex: 1 1 100%;
+  }
+  .cart-line-actions button {
+    flex: 1;
+  }
+}
+
+/* ---------- Responsive bargaining/chat ---------- */
+.chat-wrap {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.chat-threads {
+  width: 200px;
+  flex-shrink: 0;
+}
+.chat-main {
+  flex: 1;
+  min-width: 0;
+}
+/* Compose rows: input takes the space, the button never gets squeezed away. */
+.chat-compose input {
+  flex: 1;
+  min-width: 0;
+}
+.chat-compose button {
+  flex-shrink: 0;
+}
+@media (max-width: 760px) {
+  .chat-wrap {
+    flex-direction: column;
+  }
+  .chat-threads {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .chat-threads .muted {
+    align-self: center;
+    flex-shrink: 0;
+  }
+  .chat-threads .card {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}

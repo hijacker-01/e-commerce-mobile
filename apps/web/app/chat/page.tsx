@@ -88,8 +88,8 @@ export default function ChatPage() {
   return (
     <main>
       <h1>Bargaining</h1>
-      <div style={{ display: 'flex', gap: 16 }}>
-        <div style={{ width: 200 }}>
+      <div className="chat-wrap">
+        <div className="chat-threads">
           <div className="muted">Threads</div>
           {threads.map((t) => (
             <div
@@ -110,13 +110,13 @@ export default function ChatPage() {
           )}
         </div>
 
-        <div style={{ flex: 1 }}>
+        <div className="chat-main">
           {!active ? (
             <p className="muted">Select a thread.</p>
           ) : (
             <>
               <div
-                className="card"
+                className="card chat-log"
                 style={{ minHeight: 280, maxHeight: 380, overflowY: 'auto' }}
               >
                 {messages.map((m) => {
@@ -162,9 +162,9 @@ export default function ChatPage() {
                 )}
               </div>
 
-              <div className="row" style={{ marginTop: 10 }}>
+              <div className="row chat-compose" style={{ marginTop: 10 }}>
                 <input
-                  placeholder="Message…"
+                  placeholder="Type your message…"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && send()}
@@ -172,7 +172,7 @@ export default function ChatPage() {
                 <button onClick={send}>Send</button>
               </div>
               {!isStaff && (
-                <div className="row" style={{ marginTop: 10 }}>
+                <div className="row chat-compose" style={{ marginTop: 10 }}>
                   <input
                     type="number"
                     placeholder="Your offer (₹)"

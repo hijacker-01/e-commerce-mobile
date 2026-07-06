@@ -98,63 +98,52 @@ export default function CartPage() {
         </div>
       ) : (
         <div className="cart-grid" style={{ marginTop: 8 }}>
-          <div className="card" style={{ padding: 8 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Price</th>
-                  <th>Qty</th>
-                  <th>Total</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {cart.items.map((i) => (
-                  <tr key={i.productId}>
-                    <td>{i.title}</td>
-                    <td>₹{i.unitPrice}</td>
-                    <td>
-                      <div className="stepper">
-                        <button
-                          className="secondary"
-                          aria-label="Decrease quantity"
-                          onClick={() => setQty(i.productId, i.quantity - 1)}
-                        >
-                          −
-                        </button>
-                        <span className="stepper-val">{i.quantity}</span>
-                        <button
-                          className="secondary"
-                          aria-label="Increase quantity"
-                          onClick={() => setQty(i.productId, i.quantity + 1)}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </td>
-                    <td>₹{i.lineTotal}</td>
-                    <td>
-                      <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
-                        <button
-                          className="secondary"
-                          title="Negotiate a price before checkout"
-                          onClick={() => bargain(i.productId)}
-                        >
-                          💬 Bargain
-                        </button>
-                        <button
-                          className="secondary"
-                          onClick={() => setQty(i.productId, 0)}
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="card cart-lines">
+            {cart.items.map((i) => (
+              <div className="cart-line" key={i.productId}>
+                <div className="cart-line-info">
+                  <div className="cart-line-title">{i.title}</div>
+                  <div className="cart-line-price">
+                    ₹{i.unitPrice} <span className="muted">each</span>
+                  </div>
+                </div>
+                <div className="cart-line-qty">
+                  <div className="stepper">
+                    <button
+                      className="secondary"
+                      aria-label="Decrease quantity"
+                      onClick={() => setQty(i.productId, i.quantity - 1)}
+                    >
+                      −
+                    </button>
+                    <span className="stepper-val">{i.quantity}</span>
+                    <button
+                      className="secondary"
+                      aria-label="Increase quantity"
+                      onClick={() => setQty(i.productId, i.quantity + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="cart-line-total">₹{i.lineTotal}</div>
+                </div>
+                <div className="cart-line-actions">
+                  <button
+                    className="secondary"
+                    title="Negotiate a price before checkout"
+                    onClick={() => bargain(i.productId)}
+                  >
+                    💬 Bargain
+                  </button>
+                  <button
+                    className="secondary"
+                    onClick={() => setQty(i.productId, 0)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="summary">
