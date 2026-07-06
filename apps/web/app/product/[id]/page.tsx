@@ -89,8 +89,6 @@ export default function ProductPage({
   const [selImg, setSelImg] = useState(0);
   const [similar, setSimilar] = useState<SimpleProduct[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [pin, setPin] = useState('');
-  const [delivery, setDelivery] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [newQuestion, setNewQuestion] = useState('');
   const [zoomOpen, setZoomOpen] = useState(false);
@@ -150,23 +148,6 @@ export default function ProductPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Deterministic delivery estimate from a 6-digit pincode (demo logic).
-  function checkDelivery() {
-    if (!/^\d{6}$/.test(pin)) {
-      setDelivery('Enter a valid 6-digit pincode.');
-      return;
-    }
-    const days = (Number(pin[0]) % 4) + 2; // 2–5 days
-    const eta = new Date(Date.now() + days * 86400000);
-    setDelivery(
-      `Delivery by ${eta.toLocaleDateString('en-IN', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-      })} · Free`,
-    );
-  }
-
   async function submitReview() {
     if (!getToken()) {
       toast('Please log in to write a review.', 'info');
@@ -195,19 +176,6 @@ export default function ProductPage({
     try {
       await api.post('/cart/items', { productId: id, quantity: 1 });
       toast('Added to cart');
-    } catch (e) {
-      toast((e as Error).message, 'error');
-    }
-  }
-
-  async function buyNow() {
-    if (!getToken()) {
-      toast('Please log in first.', 'info');
-      return router.push('/login');
-    }
-    try {
-      await api.post('/cart/items', { productId: id, quantity: 1 });
-      router.push('/checkout');
     } catch (e) {
       toast((e as Error).message, 'error');
     }
@@ -432,43 +400,17 @@ export default function ProductPage({
             </div>
           )}
 
-          {/* Delivery estimate */}
-          <div style={{ marginTop: 16 }}>
-            <strong style={{ fontSize: 14 }}>🚚 Delivery</strong>
-            <div className="row" style={{ marginTop: 8 }}>
-              <input
-                placeholder="Enter pincode"
-                inputMode="numeric"
-                maxLength={6}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                onKeyDown={(e) => e.key === 'Enter' && checkDelivery()}
-                style={{ maxWidth: 160 }}
-              />
-              <button className="secondary" onClick={checkDelivery}>
-                Check
-              </button>
-            </div>
-            {delivery && (
-              <div className="stock-in" style={{ marginTop: 8, fontSize: 13 }}>
-                {delivery}
-              </div>
-            )}
+          {/* Store-pickup model — collect in store, no home delivery. */}
+          <div className="pickup-note ready" style={{ marginTop: 16 }}>
+            🏬 In-store pickup — collect from Prakash Mobile, Mannat Complex,
+            Gadarwara. Pickup timing is confirmed at checkout.
           </div>
 
           <div className="row" style={{ marginTop: 22, flexWrap: 'wrap' }}>
             <button
-              onClick={buyNow}
-              disabled={!inStock}
-              className="success"
-              style={{ flex: 1, minWidth: 130 }}
-            >
-              ⚡ Buy now
-            </button>
-            <button
               onClick={addToCart}
               disabled={!inStock}
-              className="secondary"
+              className="success"
               style={{ flex: 1, minWidth: 130 }}
             >
               Add to cart
