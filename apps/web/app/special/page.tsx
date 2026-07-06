@@ -18,7 +18,7 @@ interface SpecialOffer {
   specialPrice: string;
   originalPrice: string;
   lowestPrice: string;
-  inStock: number;
+  inStock: boolean;
 }
 
 export default function SpecialStorePage() {
@@ -121,15 +121,15 @@ export default function SpecialStorePage() {
                 </div>
 
                 <div
-                  className={o.inStock > 0 ? 'stock-in' : 'stock-out'}
+                  className={o.inStock ? 'stock-in' : 'stock-out'}
                   style={{ marginTop: 6, fontSize: 13 }}
                 >
-                  {o.inStock > 0 ? `● ${o.inStock} in stock` : '○ Out of stock'}
+                  {o.inStock ? '● In stock' : '○ Out of stock'}
                 </div>
                 <button
                   style={{ marginTop: 12, width: '100%' }}
                   onClick={() => addToCart(o.productId)}
-                  disabled={o.inStock <= 0}
+                  disabled={!o.inStock}
                 >
                   Grab the deal
                 </button>

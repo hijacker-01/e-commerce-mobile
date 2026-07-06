@@ -191,7 +191,7 @@ export class ProductsService {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
-        inventory: true,
+        inventory: { select: { quantity: true } },
         category: true,
         reviews: true,
         // Shop area/location shown as plain text (no map).
@@ -221,7 +221,16 @@ export class ProductsService {
         orderBy: { price: 'asc' },
       });
     }
-    return { ...product, variants };
+    // Expose availability only — not the live stock count.
+    const { inventory, ...rest } = product;
+    return {
+      ...rest,
+      inStock: (inventory?.quantity ?? 0) > 0,
+      variants: variants.map(({ inventory: inv, ...v }) => ({
+        ...v,
+        inStock: (inv?.quantity ?? 0) > 0,
+      })),
+    };
   }
 
   // ---- Product Q&A ----
@@ -295,13 +304,19 @@ export class ProductsService {
           ? { price: 'desc' }
           : { createdAt: 'desc' };
 
-    return this.prisma.product.findMany({
+    const rows = await this.prisma.product.findMany({
       where,
       orderBy,
       include: {
-        inventory: true,
+        inventory: { select: { quantity: true } },
         category: { select: { id: true, name: true, slug: true } },
       },
     });
+    // Never expose the live stock count to the storefront (customers/stockists);
+    // only whether the item is available.
+    return rows.map(({ inventory, ...p }) => ({
+      ...p,
+      inStock: (inventory?.quantity ?? 0) > 0,
+    }));
   }
 }

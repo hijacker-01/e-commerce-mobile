@@ -14,7 +14,7 @@ interface CatalogItem {
   category: string | null;
   retail: string;
   stockistPrice: string;
-  inStock: number;
+  inStock: boolean;
 }
 
 function StockistNav() {
@@ -98,7 +98,7 @@ export default function StockistOrderPage() {
             <tr>
               <th>Product</th>
               <th>Stockist price</th>
-              <th>In stock</th>
+              <th>Availability</th>
               <th>Qty</th>
               <th>Line total</th>
             </tr>
@@ -122,7 +122,9 @@ export default function StockistOrderPage() {
                       retail ₹{Number(i.retail).toLocaleString('en-IN')}
                     </div>
                   </td>
-                  <td className="muted">{i.inStock}</td>
+                  <td className={i.inStock ? 'stock-in' : 'stock-out'}>
+                    {i.inStock ? '● Available' : '○ Out of stock'}
+                  </td>
                   <td>
                     <input
                       type="number"

@@ -38,7 +38,8 @@ export class StockistOrdersService {
       category: p.category?.name ?? null,
       retail: p.price.toString(),
       stockistPrice: this.effectivePrice(p).toFixed(2),
-      inStock: p.inventory?.quantity ?? 0,
+      // Availability only — stockists don't see the live stock count.
+      inStock: (p.inventory?.quantity ?? 0) > 0,
     }));
   }
 

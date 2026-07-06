@@ -31,7 +31,8 @@ export class SpecialService {
       specialPrice: o.specialPrice.toString(),
       originalPrice: o.originalPrice.toString(),
       lowestPrice: o.lowestPrice.toString(),
-      inStock: o.product.inventory?.quantity ?? 0,
+      // Availability only — never the live stock count.
+      inStock: (o.product.inventory?.quantity ?? 0) > 0,
     }));
   }
 

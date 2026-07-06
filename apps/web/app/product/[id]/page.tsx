@@ -24,7 +24,7 @@ interface Product {
   category?: { id: string; name: string } | null;
   variantLabel?: string | null;
   variants?: Variant[];
-  inventory?: { quantity: number } | null;
+  inStock?: boolean;
   shop?: {
     name: string;
     address?: string | null;
@@ -36,7 +36,7 @@ interface Variant {
   id: string;
   variantLabel: string | null;
   price: string;
-  inventory?: { quantity: number } | null;
+  inStock?: boolean;
 }
 interface Question {
   id: string;
@@ -280,7 +280,7 @@ export default function ProductPage({
 
   if (!product) return <p className="muted">Loading…</p>;
 
-  const inStock = !!product.inventory && product.inventory.quantity > 0;
+  const inStock = !!product.inStock;
   const mrpNum = product.mrp ? Number(product.mrp) : 0;
   const priceNum = Number(product.price);
   const pct = mrpNum > priceNum ? Math.round(((mrpNum - priceNum) / mrpNum) * 100) : 0;
@@ -375,9 +375,7 @@ export default function ProductPage({
             className={inStock ? 'stock-in' : 'stock-out'}
             style={{ marginTop: 6, fontSize: 13 }}
           >
-            {inStock
-              ? `● In stock · ${product.inventory!.quantity} available`
-              : '○ Out of stock'}
+            {inStock ? '● In stock' : '○ Out of stock'}
           </div>
 
           {/* Variant selector */}
@@ -387,7 +385,7 @@ export default function ProductPage({
               <div className="row" style={{ marginTop: 8, flexWrap: 'wrap', gap: 8 }}>
                 {product.variants.map((v) => {
                   const current = v.id === product.id;
-                  const vOut = !v.inventory || v.inventory.quantity <= 0;
+                  const vOut = !v.inStock;
                   return current ? (
                     <span key={v.id} className="variant-chip active">
                       {v.variantLabel}

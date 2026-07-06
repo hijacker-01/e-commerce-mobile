@@ -25,7 +25,7 @@ interface Product {
   isNew?: boolean;
   media?: string[];
   category?: Category | null;
-  inventory?: { quantity: number } | null;
+  inStock?: boolean;
 }
 
 function Thumb({ src, alt }: { src?: string; alt: string }) {
@@ -764,7 +764,7 @@ export default function Home() {
 
           {!loading &&
             products.slice(0, visible).map((p) => {
-              const inStock = !!p.inventory && p.inventory.quantity > 0;
+              const inStock = !!p.inStock;
               const pct = discountPct(p.price, p.mrp);
               const saved = wishlist.has(p.id);
               return (
@@ -792,9 +792,7 @@ export default function Home() {
                     className={inStock ? 'stock-in' : 'stock-out'}
                     style={{ marginTop: 6, fontSize: 13 }}
                   >
-                    {inStock
-                      ? `● ${p.inventory!.quantity} in stock`
-                      : '○ Out of stock'}
+                    {inStock ? '● In stock' : '○ Out of stock'}
                   </div>
                   <button
                     style={{ marginTop: 14, width: '100%' }}
