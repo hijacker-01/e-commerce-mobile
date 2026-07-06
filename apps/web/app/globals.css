@@ -1845,6 +1845,62 @@ th {
   padding: 1px 8px;
   border-radius: 999px;
 }
+
+/* ---------- Owner/employee stock (inventory) manager ---------- */
+.stock-lines {
+  padding: 8px;
+}
+.stock-line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.stock-line:last-child {
+  border-bottom: none;
+}
+.stock-line-info {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.stock-line-title {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.stock-line-now {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 96px;
+  text-align: right;
+}
+.stock-line-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stock-qty {
+  width: 64px;
+  text-align: center;
+  border: none;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  font-weight: 600;
+  padding: 6px 4px;
+}
+@media (max-width: 640px) {
+  .stock-line-now {
+    flex: 1 1 auto;
+    text-align: left;
+  }
+  .stock-line-edit {
+    flex: 1 1 100%;
+    justify-content: space-between;
+  }
+}
 @media (max-width: 640px) {
   .cart-line-qty {
     flex: 1 1 100%;

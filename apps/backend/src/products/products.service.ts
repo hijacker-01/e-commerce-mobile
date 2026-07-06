@@ -50,6 +50,52 @@ export class ProductsService {
     });
   }
 
+  /** Staff-only: every product with its EXACT live stock count. */
+  async listStock() {
+    const rows = await this.prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: [{ brand: 'asc' }, { title: 'asc' }],
+      include: {
+        inventory: { select: { quantity: true, reorderLevel: true } },
+        category: { select: { name: true } },
+      },
+    });
+    return rows.map((p) => ({
+      id: p.id,
+      title: p.title,
+      brand: p.brand,
+      model: p.model,
+      media: p.media,
+      category: p.category?.name ?? null,
+      price: p.price.toString(),
+      quantity: p.inventory?.quantity ?? 0,
+      reorderLevel: p.inventory?.reorderLevel ?? 2,
+    }));
+  }
+
+  /** Staff-only: set the exact stock count for one product. */
+  async setStock(productId: string, quantity: number, reorderLevel?: number) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+    if (!product) throw new NotFoundException('Product not found');
+    const qty = Math.max(0, Math.floor(quantity));
+    const inv = await this.prisma.inventory.upsert({
+      where: { productId },
+      create: {
+        productId,
+        quantity: qty,
+        reorderLevel: reorderLevel ?? 2,
+      },
+      update: {
+        quantity: qty,
+        ...(reorderLevel != null ? { reorderLevel } : {}),
+      },
+      select: { quantity: true, reorderLevel: true },
+    });
+    return { id: productId, ...inv };
+  }
+
   listCategories() {
     return this.prisma.category.findMany({
       select: { id: true, name: true, slug: true },

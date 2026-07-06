@@ -53,6 +53,28 @@ export class ProductsController {
     return this.products.listAllQuestions(unanswered === 'true');
   }
 
+  // Exact live stock for staff (owner/employee only — never customers/stockists).
+  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Get('meta/stock')
+  stock() {
+    return this.products.listStock();
+  }
+
+  @Roles(Role.OWNER, Role.EMPLOYEE)
+  @Patch(':id/stock')
+  async setStock(
+    @Param('id') id: string,
+    @Body('quantity') quantity: number,
+    @Body('reorderLevel') reorderLevel: number | undefined,
+    @CurrentUser() user: AuthUser,
+  ) {
+    const res = await this.products.setStock(id, Number(quantity), reorderLevel);
+    await this.audit.log(user.id, 'stock', 'product', id, {
+      quantity: res.quantity,
+    });
+    return res;
+  }
+
   @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {

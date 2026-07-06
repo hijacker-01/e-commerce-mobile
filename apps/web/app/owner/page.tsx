@@ -120,6 +120,9 @@ export default function OwnerPage() {
         <a className="btn" href="#add-product">
           ➕ Add product
         </a>
+        <Link className="btn secondary" href="/owner/inventory">
+          📦 Stock
+        </Link>
         <Link className="btn secondary" href="/owner/questions">
           Customer Q&amp;A
         </Link>
