@@ -34,7 +34,7 @@ export default function SupportPage() {
         ...m,
         {
           role: 'ai',
-          text: 'Support is temporarily unreachable. Please try again in a moment, or call the store at 9000000001.',
+          text: 'Support is temporarily unreachable. Please try again in a moment, or call the store at 8959863333.',
         },
       ]);
     } finally {

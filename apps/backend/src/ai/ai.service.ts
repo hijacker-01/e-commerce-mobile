@@ -198,7 +198,7 @@ export class AiService {
     if (/pay|emi|upi|card|cod|cash/.test(q)) {
       return 'We accept UPI, Credit Card (5% off), Debit Card, Online/Netbanking, Cash on pickup, and No-cost EMI. Pick one at checkout.';
     }
-    return 'I can help with your orders, store pickup, returns, exchange, offers and payments. For anything else, please call the store at 9000000001.';
+    return 'I can help with your orders, store pickup, returns, exchange, offers and payments. For anything else, please call the store at 8959863333.';
   }
 
   // --- helpers -------------------------------------------------------------

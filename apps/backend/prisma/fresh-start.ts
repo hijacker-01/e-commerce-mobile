@@ -61,12 +61,18 @@ async function main() {
     create: { name, phone, role: Role.OWNER, passwordHash },
   });
 
-  // 3) Point the existing shop at the new owner (keep its identity), or make one.
+  // 3) Point the existing shop at the new owner AND set its real contact
+  //    details (name/address/phone) so the storefront shows the owner's number.
   const shop = await prisma.shop.findFirst();
   if (shop) {
     await prisma.shop.update({
       where: { id: shop.id },
-      data: { ownerId: owner.id },
+      data: {
+        ownerId: owner.id,
+        name: 'Prakash Mobile',
+        address: 'Mannat Complex, Gadarwara',
+        phone,
+      },
     });
   } else {
     await prisma.shop.create({

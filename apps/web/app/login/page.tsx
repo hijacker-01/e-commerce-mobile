@@ -236,7 +236,7 @@ export default function LoginPage() {
                     type="tel"
                     inputMode="numeric"
                     autoComplete="tel"
-                    placeholder="9000000001"
+                    placeholder="10-digit mobile number"
                     value={phone}
                     onChange={(e) =>
                       setPhone(e.target.value.replace(/[^\d+]/g, ''))
@@ -354,7 +354,7 @@ export default function LoginPage() {
                     type="tel"
                     inputMode="numeric"
                     autoComplete="tel"
-                    placeholder="9000000001"
+                    placeholder="10-digit mobile number"
                     value={phone}
                     onChange={(e) =>
                       setPhone(e.target.value.replace(/[^\d+]/g, ''))
