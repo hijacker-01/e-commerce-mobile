@@ -314,7 +314,7 @@ export class ProductsService {
   }
 
   /** Faceted listing for the smart-filter storefront. */
-  list(query: ProductQueryDto) {
+  async list(query: ProductQueryDto) {
     const where: Prisma.ProductWhereInput = {};
     if (query.activeOnly !== false) where.isActive = true;
     if (query.brand) where.brand = query.brand;
